@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Detalle de Presupuesto — Plan 4 Meses Heladería Malvinas</title>
+  <style>
+    :root {
+      --primary: #0284c7;
+      --primary-dark: #0369a1;
+      --accent: #ec4899;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #475569;
+      --border: #e2e8f0;
+      --success: #16a34a;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 24px;
+    }
+    .toolbar {
+      max-width: 900px;
+      margin: 0 auto 20px auto;
+      background: #1e293b;
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 16px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      text-decoration: none;
+      cursor: pointer;
+      border: none;
+      transition: 0.2s;
+    }
+    .btn-demo { background: var(--accent); color: white; }
+    .btn-demo:hover { background: #db2777; }
+    .btn-print { background: var(--primary); color: white; }
+    .btn-print:hover { background: var(--primary-dark); }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: var(--card);
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .header {
+      background: linear-gradient(135deg, #0284c7 0%, #1e3a8a 60%, #be185d 100%);
+      color: white;
+      padding: 36px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    .badge {
+      display: inline-block;
+      background: rgba(255, 255, 255, 0.2);
+      padding: 4px 12px;
+      border-radius: 99px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .header h1 { font-size: 1.85rem; line-height: 1.25; margin-bottom: 8px; }
+    .header p { font-size: 1rem; opacity: 0.92; }
+    .content { padding: 32px; }
+    .price-banner {
+      background: linear-gradient(135deg, #ec4899 0%, #be185d 100%);
+      color: white;
+      border-radius: 14px;
+      padding: 22px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 30px;
+    }
+    .price-banner .price-num { font-size: 2.3rem; font-weight: 800; }
+    .price-banner .price-label { font-size: 0.95rem; opacity: 0.9; }
+    .price-banner .price-detail { font-size: 0.85rem; background: rgba(0,0,0,0.18); padding: 6px 14px; border-radius: 99px; }
+    h2 {
+      font-size: 1.28rem;
+      color: var(--primary-dark);
+      margin: 24px 0 14px 0;
+      padding-bottom: 6px;
+      border-bottom: 2px solid #e0f2fe;
+    }
+    .table-custom {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 24px;
+      font-size: 0.92rem;
+    }
+    .table-custom th, .table-custom td {
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      text-align: left;
+    }
+    .table-custom th {
+      background: #f1f5f9;
+      color: #334155;
+      font-weight: 700;
+    }
+    .table-custom tr:nth-child(even) { background: #f8fafc; }
+    .tag-included {
+      background: #dcfce7;
+      color: #15803d;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 99px;
+      font-size: 0.8rem;
+      display: inline-block;
+    }
+    .tag-free {
+      background: #e0f2fe;
+      color: #0369a1;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 99px;
+      font-size: 0.8rem;
+      display: inline-block;
+    }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+      gap: 18px;
+      margin-bottom: 24px;
+    }
+    .card-item {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+    }
+    .card-item h3 {
+      font-size: 1.05rem;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .card-item p { font-size: 0.9rem; color: var(--muted); }
+    .card-item ul { margin-top: 8px; margin-left: 20px; font-size: 0.88rem; color: #334155; }
+    .card-item li { margin-bottom: 4px; }
+    .footer {
+      text-align: center;
+      padding: 18px;
+      background: #f8fafc;
+      border-top: 1px solid var(--border);
+      font-size: 0.88rem;
+      color: var(--muted);
+    }
+    @media print {
+      body { padding: 0; background: white; }
+      .toolbar { display: none; }
+      .container { box-shadow: none; border: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="toolbar">
+    <span>📄 <strong>Presupuesto Detallado:</strong> Plan Evolutivo 4 Meses — Heladería Malvinas</span>
+    <div>
+      <a class="btn btn-demo" href="../Juego_Web/index.html" target="_blank">🎮 Ver Demo</a>
+      <button class="btn btn-print" onclick="window.print()">🖨️ Imprimir / Guardar en PDF</button>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="header">
+      <div>
+        <span class="badge">Presupuesto & Especificación Técnica</span>
+        <h1>Juego Promocional Web — Heladería Malvinas</h1>
+        <p>Plan de Desarrollo Evolutivo, Campañas de Sorteos & Infraestructura en la Nube</p>
+      </div>
+      <div style="background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.25); border-radius:12px; padding:10px 16px; text-align:center;">
+        <span style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.5px; display:block;">Cliente</span>
+        <strong>Heladería Malvinas</strong>
+        <span style="font-size:0.8rem; display:block; opacity:0.9;">La Rioja, Argentina</span>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <div class="price-banner">
+        <div>
+          <div class="price-label">Modalidad Seleccionada: Plan 4 Meses</div>
+          <div class="price-num">$180.000 ARS <span style="font-size:1.1rem; font-weight:400;">/ mes</span></div>
+        </div>
+        <div style="text-align:right;">
+          <div class="price-detail">Período: 4 Meses • Precio Cerrado</div>
+          <div style="font-size:0.85rem; margin-top:6px; opacity:0.95;">Sin costos ocultos de servidores ni licencias</div>
+        </div>
+      </div>
+
+      <h2>1. Infraestructura, Base de Datos y Repositorio (Cubiertos al 100%)</h2>
+      <div class="grid-2">
+        <div class="card-item">
+          <h3>☁️ Hosting Web y Subida a Internet</h3>
+          <p>Alojamiento web en la nube de alta velocidad con disponibilidad 24/7 y certificado de seguridad SSL (HTTPS).</p>
+          <ul>
+            <li>Carga inmediata en celulares (4G/5G) y Wi-Fi en La Rioja.</li>
+            <li>Subida y publicación en internet lista para compartir por Instagram y WhatsApp.</li>
+            <li>Código QR oficial en alta definición para colocar en mostrador y mesas.</li>
+            <li><strong>Costo de hosting: $0 ARS adicionales (Cubierto).</strong></li>
+          </ul>
+        </div>
+
+        <div class="card-item">
+          <h3>🗄️ Base de Datos en la Nube (Supabase / PostgreSQL)</h3>
+          <p>Almacenamiento en la nube de alta seguridad para el sistema de Ranking y captura de datos.</p>
+          <ul>
+            <li>Registro de participantes: Nombre, Teléfono/WhatsApp, Instagram y Puntaje.</li>
+            <li>Tabla de posiciones (Top 10) en vivo y en tiempo real.</li>
+            <li>Panel de control administrativo para ver ganadores de los sorteos.</li>
+            <li>Exportación de contactos a Excel/CSV para campañas de WhatsApp Marketing.</li>
+            <li><strong>Costo de base de datos: $0 ARS adicionales (Cubierto).</strong></li>
+          </ul>
+        </div>
+
+        <div class="card-item">
+          <h3>🐙 Repositorio en GitHub (Código Abierto)</h3>
+          <p>Todo el código fuente alojado con control de versiones Git bajo licencia abierta y transparente.</p>
+          <ul>
+            <li><strong>Propiedad total del cliente:</strong> La heladería es dueña de su código.</li>
+            <li>Sin dependencias ni "código rehén": acceso total al repositorio.</li>
+            <li>Historial de cambios y documentación técnica de soporte.</li>
+            <li><strong>Costo del repositorio: $0 ARS adicionales (Cubierto).</strong></li>
+          </ul>
+        </div>
+
+        <div class="card-item">
+          <h3>🛡️ Soporte Técnico y Gestión de Sorteos</h3>
+          <p>Acompañamiento y soporte durante los 4 meses completos de la campaña.</p>
+          <ul>
+            <li>Reinicio mensual de la tabla de posiciones para nuevos sorteos.</li>
+            <li>Filtro y verificación de puntajes válidos (anti-trampas).</li>
+            <li>Actualización de textos con los premios de cada mes (ej. 1 Kg de helado).</li>
+            <li>Monitoreo y asistencia técnica garantizada.</li>
+          </ul>
+        </div>
+      </div>
+
+      <h2>2. Cronograma de Entregables Mes a Mes</h2>
+      <table class="table-custom">
+        <thead>
+          <tr>
+            <th style="width:18%;">Período</th>
+            <th style="width:20%;">Inversión</th>
+            <th>Entregables y Metas del Mes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Mes 1</strong><br><small style="color:var(--muted);">Lanzamiento</small></td>
+            <td><strong>$180.000 ARS</strong></td>
+            <td>
+              • Personaje oficial de Heladería Malvinas + Nivel 1 listo.<br>
+              • Subida a internet (Hosting SSL) + Conexión a Base de Datos (Supabase).<br>
+              • Ranking Top 10 activo + Código QR para el local + <strong>1° Sorteo en Instagram</strong>.
+            </td>
+          </tr>
+          <tr>
+            <td><strong>Mes 2</strong><br><small style="color:var(--muted);">Expansión</small></td>
+            <td><strong>$180.000 ARS</strong></td>
+            <td>
+              • <strong>Nuevo Nivel 2</strong> con más dificultad y nuevos enemigos ("El Calor Riojano de 45°C").<br>
+              • Reinicio del Ranking para la <strong>Segunda Campaña de Sorteo Mensual</strong>.<br>
+              • Mantenimiento de servidores, base de datos y soporte técnico.
+            </td>
+          </tr>
+          <tr>
+            <td><strong>Mes 3</strong><br><small style="color:var(--muted);">Cuponera & Fidelización</small></td>
+            <td><strong>$180.000 ARS</strong></td>
+            <td>
+              • Sistema de <strong>Cupones de Descuento automáticos</strong> en pantalla (ej. 15% OFF o 2x1) por puntaje.<br>
+              • Poderes especiales (Súper Pote de 1 Kg) + <strong>Tercer Sorteo Mensual</strong>.
+            </td>
+          </tr>
+          <tr>
+            <td><strong>Mes 4</strong><br><small style="color:var(--muted);">Cierre y Consolidación</small></td>
+            <td><strong>$180.000 ARS</strong></td>
+            <td>
+              • Nivel o temática para fecha especial (Navidad / Temporada de Verano).<br>
+              • <strong>Entrega de la Base de Contactos completa en Excel</strong> para WhatsApp Marketing.<br>
+              • Entrega formal y definitiva del Repositorio en GitHub con todo el código.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>3. Cuadro Resumen de Costos</h2>
+      <table class="table-custom">
+        <thead>
+          <tr>
+            <th>Concepto</th>
+            <th>Estado en el Presupuesto</th>
+            <th>Costo para el Cliente</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Desarrollo del Juego Web (2 Niveles + Personaje)</td>
+            <td><span class="tag-included">INCLUIDO</span></td>
+            <td>Cubierto en cuota mensual</td>
+          </tr>
+          <tr>
+            <td>Hosting Web Cloud 24/7 (Vercel / Netlify)</td>
+            <td><span class="tag-free">CUBIERTO 100%</span></td>
+            <td><strong>$0 ARS / mes</strong></td>
+          </tr>
+          <tr>
+            <td>Base de Datos en la Nube (Supabase / PostgreSQL)</td>
+            <td><span class="tag-free">CUBIERTO 100%</span></td>
+            <td><strong>$0 ARS / mes</strong></td>
+          </tr>
+          <tr>
+            <td>Repositorio en GitHub (Código Abierto)</td>
+            <td><span class="tag-free">CUBIERTO 100%</span></td>
+            <td><strong>$0 ARS / mes</strong></td>
+          </tr>
+          <tr>
+            <td>Soporte Técnico y Gestión de Sorteos Mensuales</td>
+            <td><span class="tag-included">INCLUIDO</span></td>
+            <td>Cubierto en cuota mensual</td>
+          </tr>
+          <tr style="background:#fef2f2; font-weight:bold;">
+            <td colspan="2">Total a Abonar por Mes (Durante 4 meses):</td>
+            <td style="color:#be185d; font-size:1.15rem;">$180.000 ARS / mes</td>
+          </tr>
+        </tbody>
+      </table>
+
+    </div>
+
+    <div class="footer">
+      Documento comercial preparado para <strong>Heladería Malvinas — La Rioja, Argentina</strong>
+    </div>
+  </div>
+
+</body>
+</html>
