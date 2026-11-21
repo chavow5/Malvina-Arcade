@@ -108,142 +108,206 @@
       font-weight: 700;
     }
 
-    /* MAIN LAYOUT */
-    .main-layout {
-      max-width: 1320px;
-      width: 100%;
-      margin: 14px auto;
-      padding: 0 14px;
-      display: grid;
-      grid-template-columns: 1fr 340px;
-      gap: 18px;
-      align-items: start;
+    /* PANTALLA COMPLETA TOTAL (100% DE LA VENTANA SIN BORDES NI AZUL) */
+    header {
+      display: none !important;
     }
-    @media (max-width: 1024px) {
-      .main-layout {
-        grid-template-columns: 1fr;
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100vw;
+      height: 100vh;
+      max-width: 100vw;
+      max-height: 100vh;
+      overflow: hidden;
+      background: #000000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    .arcade-container {
+      width: 100vw;
+      height: 100vh;
+      max-width: 100vw;
+      max-height: 100vh;
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      background: #000000;
+      overflow: hidden;
+    }
+
+    /* PANTALLA DE INICIO VISUAL (100% DE PANTALLA COMPLETA) */
+    .arcade-pixel-title-view {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      max-width: 100vw;
+      max-height: 100vh;
+      margin: 0;
+      padding: 0;
+      background-image: url('fondo_inicio_arcade.jpg');
+      background-size: 100% 100%;
+      background-position: center;
+      background-repeat: no-repeat;
+      border: none;
+      border-radius: 0;
+      box-shadow: none;
+      overflow: hidden;
+    }
+
+    /* BOTONES INTERACTIVOS SOBRE LA IMAGEN ORIGINAL */
+    .arcade-img-hitbox {
+      position: absolute;
+      left: 8.4%;
+      width: 34.6%;
+      height: 11.2%;
+      border-radius: 999px;
+      cursor: pointer;
+      background: transparent;
+      border: 3px solid transparent;
+      transition: all 0.16s ease;
+      outline: none;
+      -webkit-tap-highlight-color: transparent;
+      z-index: 5;
+    }
+    #btnTitlePlay {
+      top: 56.6%;
+    }
+    #btnTitleOptions {
+      top: 68.0%;
+    }
+    #btnTitleExit {
+      top: 79.5%;
+    }
+
+    .arcade-img-hitbox:hover, .arcade-img-hitbox:focus-visible {
+      border-color: rgba(255, 255, 255, 0.95);
+      box-shadow: 0 0 24px rgba(255, 255, 255, 0.85), inset 0 0 16px rgba(255, 255, 255, 0.4);
+      transform: scale(1.02);
+    }
+    .arcade-img-hitbox:active {
+      transform: scale(0.97);
+      box-shadow: 0 0 12px rgba(255, 255, 255, 0.5);
+    }
+
+    /* BARRA FLOTANTE MINIMALISTA SUPERIOR EN EL TITLE SCREEN */
+    .title-top-bar {
+      position: absolute;
+      top: 18px;
+      right: 22px;
+      display: flex;
+      gap: 10px;
+      z-index: 10;
+    }
+    .title-quick-btn {
+      background: rgba(15, 23, 42, 0.82);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      backdrop-filter: blur(8px);
+      border-radius: 999px;
+      padding: 7px 16px;
+      font-size: 0.84rem;
+      font-weight: 700;
+      color: #ffffff;
+      cursor: pointer;
+      transition: all 0.16s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+    }
+    .title-quick-btn:hover {
+      background: rgba(236, 72, 153, 0.9);
+      border-color: #f472b6;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(236, 72, 153, 0.6);
+    }
+
+    /* VERSIÓN PARA CELULAR / PANTALLA VERTICAL (PORTRAIT) */
+    @media (max-width: 768px), (orientation: portrait) {
+      .arcade-pixel-title-view {
+        background-image: url('fondo_inicio_celular.jpg') !important;
+        background-size: 100% 100% !important;
+        background-position: center !important;
+      }
+
+      /* REUBICACIÓN PRECISA DE LOS BOTONES EN CELULAR */
+      #btnTitlePlay {
+        left: 26.5% !important;
+        width: 47.0% !important;
+        top: 69.4% !important;
+        height: 6.2% !important;
+      }
+      #btnTitleOptions {
+        left: 28.0% !important;
+        width: 44.0% !important;
+        top: 76.8% !important;
+        height: 5.4% !important;
+      }
+      #btnTitleExit {
+        left: 29.5% !important;
+        width: 41.0% !important;
+        top: 83.5% !important;
+        height: 5.2% !important;
+      }
+
+      /* BARRA SUPERIOR EN CELULAR */
+      .title-top-bar {
+        top: 14px !important;
+        right: 12px !important;
+        gap: 6px !important;
+      }
+      .title-quick-btn {
+        padding: 5px 10px !important;
+        font-size: 0.72rem !important;
       }
     }
 
-    /* GAME CONTAINER */
-    .game-wrapper {
-      background: var(--panel-bg);
-      border: 2px solid var(--border);
-      border-radius: 16px;
-      overflow: hidden;
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
-      position: relative;
-    }
-    .hud-bar {
-      background: #0f172a;
-      padding: 10px 16px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 10px;
-      border-bottom: 1px solid var(--border);
-      font-family: 'Courier New', monospace;
-    }
-    .hud-item {
+    /* PANTALLA DE JUEGO (PANTALLA COMPLETA TOTAL) */
+    .arcade-game-view {
+      width: 100vw;
+      height: 100vh;
+      max-width: 100vw;
+      max-height: 100vh;
+      margin: 0;
+      padding: 0;
+      background: #000000;
+      border: none;
+      border-radius: 0;
+      box-shadow: none;
       display: flex;
       flex-direction: column;
-      align-items: center;
-    }
-    .hud-label {
-      font-size: 0.7rem;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-    .hud-value {
-      font-size: 1.15rem;
-      font-weight: 800;
-      color: var(--accent-yellow);
-    }
-    .canvas-container {
+      justify-content: space-between;
       position: relative;
-      width: 100%;
-      aspect-ratio: 16 / 9;
-      background: #38bdf8;
-      display: flex;
-      align-items: center;
-      justify-content: center;
       overflow: hidden;
     }
-    canvas {
-      width: 100%;
-      height: 100%;
-      display: block;
-      image-rendering: pixelated;
+
+    /* MODO PANTALLA COMPLETA NATIVA (FULLSCREEN API) */
+    :fullscreen body, :-webkit-full-screen body {
+      background: #000000 !important;
+    }
+    :fullscreen .arcade-container, :-webkit-full-screen .arcade-container {
+      width: 100vw !important;
+      height: 100vh !important;
+    }
+    :fullscreen .arcade-pixel-title-view, :-webkit-full-screen .arcade-pixel-title-view {
+      width: 100vw !important;
+      height: 100vh !important;
+    }
+    :fullscreen .arcade-game-view, :-webkit-full-screen .arcade-game-view {
+      width: 100vw !important;
+      height: 100vh !important;
     }
 
-    /* TOUCH CONTROLS FOR MOBILE & DEMO */
-    .touch-controls {
-      background: #0f172a;
-      padding: 12px 18px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-top: 1px solid var(--border);
-    }
-    .dpad, .action-btns {
-      display: flex;
-      gap: 10px;
-    }
-    .touch-btn {
-      width: 56px;
-      height: 50px;
-      border-radius: 12px;
-      background: #1e293b;
-      border: 2px solid #475569;
-      color: white;
-      font-size: 1.25rem;
-      font-weight: 800;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      box-shadow: 0 4px 0 #090d16;
-      touch-action: manipulation;
-    }
-    .touch-btn:active, .touch-btn.active {
-      transform: translateY(3px);
-      box-shadow: 0 1px 0 #090d16;
-      background: var(--accent-pink);
-      border-color: #f9a8d4;
-    }
-    .touch-btn.jump-btn {
-      width: 96px;
-      background: linear-gradient(180deg, #ec4899, #be185d);
-      border-color: #f472b6;
-      font-size: 0.95rem;
-    }
-    .touch-btn.ice-btn {
-      width: 78px;
-      background: linear-gradient(135deg, #0284c7, #06b6d4, #38bdf8);
-      border-color: #a5f3fc;
-      box-shadow: 0 4px 12px rgba(6, 182, 212, 0.4);
-      font-size: 0.92rem;
-      font-weight: bold;
-    }
-    .touch-btn.ice-btn:active, .touch-btn.ice-btn.active {
-      transform: scale(0.92);
-      box-shadow: 0 0 18px rgba(103, 232, 249, 0.85);
-      border-color: #ffffff;
-    }
-    .controls-hint {
-      font-size: 0.78rem;
-      color: var(--text-muted);
-      text-align: center;
-    }
-
-    /* SIDEBAR: PROMO & LEADERBOARD */
-    .sidebar {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
     .card {
       background: var(--panel-bg);
       border: 1px solid var(--border);
@@ -752,225 +816,29 @@
 <body>
 
   <!-- TOP BAR -->
-  <header>
-    <div class="brand">
-      <img src="logo_heladeria_malvinas.png" alt="Logo Las Malvinas" style="width:36px;height:36px;border-radius:8px;object-fit:cover;" />
-      <div class="brand-text">
-        <h1>MALVINAS ARCADE</h1>
-        <span>La Aventura del Sabor — Heladería Las Malvinas</span>
+      <!-- ============================================================== -->
+  <!-- CONTENEDOR ARCADE PRINCIPAL (PANTALLA GRANDE)                      -->
+  <!-- ============================================================== -->
+  <div class="arcade-container" id="arcadeStage">
+
+    <!-- 1. PANTALLA DE INICIO ARCADE (PIXEL ART LIMPIO CON FONDO OFICIAL) -->
+    <div id="arcadeTitleScreen" class="arcade-pixel-title-view">
+      <!-- BARRA SUPERIOR RÁPIDA -->
+      <div class="title-top-bar">
+        <button type="button" class="title-quick-btn" id="quickRankingBtn">🏆 Salón de la Fama</button>
+        <button type="button" class="title-quick-btn" id="quickFsBtn">⛶ Pantalla Completa</button>
+        <button type="button" class="title-quick-btn" id="quickSoundBtn">🔊 Sonido: ON</button>
       </div>
+
+      <!-- BOTONES INTERACTIVOS SITUADOS SOBRE EL PIXEL ART -->
+      <button type="button" class="arcade-img-hitbox" id="btnTitlePlay" aria-label="JUGAR" title="¡Jugar Ahora! (Pulsá ENTER o Clic)"></button>
+      <button type="button" class="arcade-img-hitbox" id="btnTitleOptions" aria-label="OPCIONES" title="Opciones, Sonido y Niveles"></button>
+      <button type="button" class="arcade-img-hitbox" id="btnTitleExit" aria-label="SALIR / RANKING" title="Salón de la Fama y Récords"></button>
     </div>
 
-    <div class="header-actions">
-      <button class="btn btn-pink" id="btnNavLobby">🏠 Escenario Principal</button>
-      <button class="btn btn-cyan" id="btnNavGame">🎮 Jugar Ahora</button>
-      <button class="btn" id="soundToggleBtn">🔊 Sonido: ON</button>
-      <button class="btn btn-yellow" id="openAdminBtn">🔐 Panel Dueño / Admin</button>
-    </div>
-  </header>
-
-  <!-- ============================================================== -->
-  <!-- 1. ESCENARIO PRINCIPAL (LOBBY & PRESENTACIÓN DEL JUEGO REAL)     -->
-  <!-- ============================================================== -->
-  <main id="lobbyScreen" class="lobby-view">
-    <!-- HERO PRINCIPAL -->
-    <section class="lobby-hero">
-      <div class="hero-content">
-        <span class="hero-tag">✨ Videojuego Oficial — Heladería Las Malvinas</span>
-        <h1 class="hero-title">MALVINAS ARCADE<br><span style="font-size:1.8rem;color:#f472b6;">La Aventura del Sabor</span></h1>
-        <p class="hero-subtitle">Una aventura riojana para salvar el verano y recuperar el verdadero sabor del helado artesanal. Acompañá a <strong>Analía</strong> y a <strong>Malvi</strong> por los paisajes de La Rioja.</p>
-        <div class="hero-actions">
-          <button class="btn btn-play-primary" id="btnHeroPlay">🚀 ¡COMENZAR LA AVENTURA!</button>
-          <button class="btn btn-cyan" id="btnHeroStory">📖 Ver Historia & Misión</button>
-          <button class="btn btn-yellow" id="btnHeroLevels">🗺️ Seleccionar Nivel</button>
-        </div>
-      </div>
-      <div class="hero-badge-art">
-        <div class="hero-char-frame">
-          <img src="sprites/analia_quieto.png" alt="Analía Maestra Heladera" class="hero-char-img" />
-          <span class="hero-char-name">Analía</span>
-          <span class="hero-char-role">Maestra Heladera</span>
-        </div>
-        <div class="hero-char-frame" style="border-color:#38bdf8;box-shadow:0 12px 30px rgba(56,189,248,0.35);">
-          <div style="width:110px;height:140px;display:flex;flex-direction:column;align-items:center;justify-content:center;">
-            <img src="logo_heladeria_malvinas.png" alt="Malvi Mascota" style="width:80px;height:80px;filter:drop-shadow(0 6px 14px rgba(236,72,153,0.6));" />
-            <div style="font-size:1.6rem;margin-top:6px;">✨❄️</div>
-          </div>
-          <span class="hero-char-name">Malvi</span>
-          <span class="hero-char-role">Mascota Oficial</span>
-        </div>
-      </div>
-    </section>
-
-    <!-- HISTORIA Y STORYTELLING (Del PDF) -->
-    <section id="sectionStory">
-      <div class="section-title">📖 ¿De Qué Trata el Videojuego?</div>
-      <div class="section-desc">Conocé la historia oficial detrás de la aventura de Heladería Las Malvinas (del documento oficial del proyecto).</div>
-      <div class="story-grid">
-        <div class="story-card">
-          <div class="story-icon">🧊</div>
-          <h3>1. El Freezer Legendario</h3>
-          <p>Durante generaciones, este misterioso freezer en el corazón de Heladería Las Malvinas ha protegido las recetas y los ingredientes esenciales que hacen únicos a sus helados. Pero un día, Malvi, impulsado por su curiosidad traviesa, ¡abrió el misterioso freezer provocando una explosión de frío que dispersó los 3 Sabores Esenciales por toda La Rioja!</p>
-        </div>
-        <div class="story-card">
-          <div class="story-icon">🤖</div>
-          <h3>2. El Maestro Heladero Industrial</h3>
-          <p>Para empeorar las cosas, aparece un nuevo enemigo: el <strong>Maestro Heladero Industrial</strong>, un gigantesco robot gris que pretende dominar el mundo del helado con productos industriales, uniformes y sin personalidad antes de que empiece la temporada de verano.</p>
-        </div>
-        <div class="story-card">
-          <div class="story-icon">🍨</div>
-          <h3>3. La Misión de Analía & Malvi</h3>
-          <p>Analía, maestra heladera experta, emprende una aventura junto a Malvi para recorrer La Rioja, recolectar los cucuruchos perdidos, esquivar el Calor de 45°C, vencer al robot industrial y devolver los sabores al Freezer Legendario para salvar el verano.</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- PERSONAJES PRINCIPALES -->
-    <section>
-      <div class="section-title">👥 Personajes Principales</div>
-      <div class="section-desc">Conocé a los protagonistas de nuestra aventura riojana.</div>
-      <div class="chars-grid">
-        <div class="char-profile-card">
-          <img src="sprites/analia_quieto.png" alt="Analía" />
-          <div class="char-profile-info">
-            <span class="char-profile-tag">Protagonista Jugable</span>
-            <h3>Analía — Maestra Heladera</h3>
-            <p>Valiente, decidida y conocedora de todos los secretos de los helados de Las Malvinas. Con su uniforme real de maestra heladera, chaquetilla y bochero, corre y salta por La Rioja para recuperar las recetas artesanales.</p>
-            <div class="char-skills">
-              <span class="skill-pill">🏃 Salto ágil</span>
-              <span class="skill-pill">🍦 Bocha artesanal</span>
-              <span class="skill-pill">❄️ Poder de Hielo</span>
-            </div>
-          </div>
-        </div>
-        <div class="char-profile-card">
-          <div style="width:100px;display:flex;flex-direction:column;align-items:center;justify-content:center;">
-            <img src="logo_heladeria_malvinas.png" alt="Malvi" style="width:80px;height:80px;" />
-            <div style="font-size:1.6rem;margin-top:6px;">❄️✨</div>
-          </div>
-          <div class="char-profile-info">
-            <span class="char-profile-tag">Compañero Inseparable</span>
-            <h3>Malvi — Mascota Oficial</h3>
-            <p>Divertido, curioso y travieso. Aunque provocó el accidente del freezer, acompaña a Analía en cada nivel y desata su <strong>Poder Malvi</strong>, lanzando ráfagas de copos de nieve cristalinos que congelan a los enemigos.</p>
-            <div class="char-skills">
-              <span class="skill-pill">❄️ Poder Malvi</span>
-              <span class="skill-pill">✨ Escarcha mágica</span>
-              <span class="skill-pill">🎉 Celebración</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- LOS 3 MUNDOS DE LA RIOJA (SELECTOR DE NIVEL) -->
-    <section id="sectionWorlds">
-      <div class="section-title">🗺️ Los 3 Mundos de La Rioja</div>
-      <div class="section-desc">Cada nivel representa un escenario icónico riojano donde recuperarás uno de los sabores esenciales.</div>
-      <div class="worlds-grid">
-        <div class="world-card" style="border-color:#38bdf8;">
-          <div>
-            <span class="world-badge">Nivel 1</span>
-            <h3>🏔️ Dique Los Sauces</h3>
-            <p>Montañas riojanas, agua cristalina y el gran Mostrador Heladero de Las Malvinas. Esquivá los Solcitos a 45°C y recuperá el primer sabor.</p>
-            <div class="world-flavor">🍓 Sabor 1: Frutilla a la Reina</div>
-          </div>
-          <button class="btn btn-cyan btnPlayLevel" data-level="1" style="width:100%;">▶ Jugar Nivel 1</button>
-        </div>
-        <div class="world-card" style="border-color:#ec4899;">
-          <div>
-            <span class="world-badge" style="color:#f472b6;">Nivel 2</span>
-            <h3>🌳 Parque de la Ciudad</h3>
-            <p>Senderos, árboles y noche estrellada bajo las farolas riojanas. Aumenta la velocidad y los saltos para recuperar el segundo sabor.</p>
-            <div class="world-flavor">🍮 Sabor 2: Dulce de Leche Granizado</div>
-          </div>
-          <button class="btn btn-pink btnPlayLevel" data-level="2" style="width:100%;">▶ Jugar Nivel 2</button>
-        </div>
-        <div class="world-card" style="border-color:#facc15;">
-          <div>
-            <span class="world-badge" style="color:#facc15;">Nivel 3 — Batalla Final</span>
-            <h3>🏙️ Microcentro Riojano</h3>
-            <p>Calles del centro, marquesina de Heladería Las Malvinas y la gran batalla contra el <strong>Maestro Heladero Industrial</strong>.</p>
-            <div class="world-flavor">🍫 Sabor 3: Chocolate Malvinas</div>
-          </div>
-          <button class="btn btn-yellow btnPlayLevel" data-level="3" style="width:100%;">▶ Jugar Nivel 3</button>
-        </div>
-      </div>
-    </section>
-
-    <!-- TABLA DE RECOMPENSAS Y DESCUENTOS (PDF SECCIÓN 7) -->
-    <section>
-      <div class="section-title">🎁 Sistema de Premios & Cupones de Descuento</div>
-      <div class="section-desc">Tu puntaje en el juego se transforma en un descuento real para consumir en Heladería Las Malvinas.</div>
-      <div class="rewards-table-box">
-        <table>
-          <thead>
-            <tr>
-              <th>Puntaje Final</th>
-              <th>Recompensa Comercial</th>
-              <th>Beneficio Adicional</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Menos de 500 pts</td>
-              <td><span style="color:var(--text-muted);">Sin descuento</span></td>
-              <td>¡Seguí practicando para superar los 500 pts!</td>
-            </tr>
-            <tr>
-              <td>500 a 999 pts</td>
-              <td><strong style="color:#67e8f9;">5% OFF</strong></td>
-              <td>Cupón digital de un solo uso en el mostrador</td>
-            </tr>
-            <tr>
-              <td>1.000 a 1.499 pts</td>
-              <td><strong style="color:#38bdf8;">10% OFF</strong></td>
-              <td>Cupón digital de un solo uso en el mostrador</td>
-            </tr>
-            <tr>
-              <td>1.500 a 1.999 pts</td>
-              <td><strong style="color:#f472b6;">15% OFF</strong></td>
-              <td>Cupón digital de un solo uso en el mostrador</td>
-            </tr>
-            <tr style="background:rgba(230,0,126,0.15);">
-              <td><strong>2.000 o más pts</strong></td>
-              <td><strong style="color:#facc15;font-size:1.05rem;">20% OFF</strong></td>
-              <td><span class="badge-ok">🏆 Participa por 1 KG de Helado Semanal</span></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- CONTROLES -->
-    <section style="background:var(--panel-bg);border:1px solid var(--border);border-radius:14px;padding:20px;">
-      <div class="section-title">🎮 Cómo Jugar</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-top:10px;">
-        <div style="background:#0f172a;padding:14px;border-radius:10px;border:1px solid #334155;">
-          <h4 style="color:#38bdf8;margin-bottom:6px;">💻 En Computadora (PC)</h4>
-          <ul style="font-size:0.82rem;color:#cbd5e1;line-height:1.6;padding-left:18px;">
-            <li><strong>Flechas / WASD:</strong> Mover a Analía a la izquierda y derecha.</li>
-            <li><strong>Espacio / Flecha Arriba:</strong> Saltar obstáculos y plataformas.</li>
-            <li><strong>Tecla X / Z / Shift:</strong> Disparar copos de nieve (Poder Malvi).</li>
-          </ul>
-        </div>
-        <div style="background:#0f172a;padding:14px;border-radius:10px;border:1px solid #334155;">
-          <h4 style="color:#f472b6;margin-bottom:6px;">📱 En Celular / Tablet</h4>
-          <ul style="font-size:0.82rem;color:#cbd5e1;line-height:1.6;padding-left:18px;">
-            <li><strong>Botones ◀ ▶:</strong> Mover a la izquierda y derecha.</li>
-            <li><strong>Botón Rosa [SALTAR ▲]:</strong> Salto ágil.</li>
-            <li><strong>Botón Celeste [❄️ TIRO]:</strong> Disparar copos de nieve congelantes.</li>
-          </ul>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <!-- ============================================================== -->
-  <!-- 2. PANTALLA DE JUEGO (CANVAS, HUD Y CONTROLES)                  -->
-  <!-- ============================================================== -->
-  <div id="gameScreen" class="main-layout" style="display:none;">
-    <!-- LEFT: GAME CANVAS & CONTROLS -->
-    <div class="game-wrapper">
+    <!-- 2. PANTALLA DE JUEGO (PANTALLA GRANDE SIN BARRAS LATERALES) -->
+    <div id="arcadeGameScreen" class="arcade-game-view" style="display:none;">
+      <!-- HUD ARCADE SUPERIOR -->
       <div class="hud-bar">
         <div class="hud-item">
           <span class="hud-label">Héroes</span>
@@ -989,29 +857,34 @@
           <span class="hud-value" id="hudCones">🍦 x0</span>
         </div>
         <div class="hud-item">
-          <span class="hud-label">Poder</span>
+          <span class="hud-label">Poder Malvi</span>
           <span class="hud-value" id="hudPower" style="color:#67e8f9;">❄️ LISTO</span>
         </div>
         <div class="hud-item">
           <span class="hud-label">Vidas</span>
           <span class="hud-value" id="hudLives">❤️❤️❤️</span>
         </div>
-        <button class="btn btn-pink" id="btnHudBack" style="padding:4px 10px;font-size:0.75rem;margin-left:auto;">🏠 Menú</button>
+        <div style="display:flex; gap:6px; margin-left:auto;">
+          <button class="btn btn-cyan" id="btnGameFs" style="padding:4px 9px; font-size:0.75rem;">⛶ Pantalla Completa</button>
+          <button class="btn" id="btnGameConfig" style="padding:4px 9px; font-size:0.75rem;">⚙️ Config</button>
+          <button class="btn btn-pink" id="btnGameHome" style="padding:4px 10px; font-size:0.75rem;">🏠 Inicio</button>
+        </div>
       </div>
 
+      <!-- CANVAS DE JUEGO 16:9 AMPLIO -->
       <div class="canvas-container">
         <canvas id="gameCanvas" width="800" height="450"></canvas>
       </div>
 
-      <!-- TOUCH & PC CONTROLS -->
+      <!-- CONTROLES TÁCTILES Y DE PC -->
       <div class="touch-controls">
         <div class="dpad">
           <button class="touch-btn" id="btnLeft" aria-label="Izquierda">◀</button>
           <button class="touch-btn" id="btnRight" aria-label="Derecha">▶</button>
         </div>
         <div class="controls-hint">
-          <strong>PC:</strong> Flechas / WASD + Espacio (Saltar) + <strong>Tecla X / Z / Shift</strong> (❄️ Copos de Nieve)<br>
-          <strong>Celular:</strong> Usa los botones táctiles en pantalla
+          <strong>PC:</strong> Flechas / WASD + <strong>Espacio</strong> (Saltar) + <strong>Tecla X / Z / Shift</strong> (❄️ Disparar Copos)<br>
+          <strong>Celular / Tablet:</strong> Usá los botones táctiles en pantalla
         </div>
         <div class="action-btns">
           <button class="touch-btn ice-btn" id="btnShoot">❄️ TIRO</button>
@@ -1020,40 +893,76 @@
       </div>
     </div>
 
-    <!-- RIGHT: PROMO BANNER & LIVE RANKING -->
-    <aside class="sidebar">
-      <div class="card" style="display:flex; align-items:center; gap:14px; background:linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-color:#f472b6;">
-        <img src="personaje_heladera_malvinas.png" alt="Analía Maestra Heladera" style="width:72px; height:auto; filter:drop-shadow(0 4px 10px rgba(236,72,153,0.4));" />
-        <div>
-          <span class="promo-tag" style="background:#f472b6; color:#fff;">✨ Protagonista Oficial</span>
-          <h3 style="font-size:1rem; margin-bottom:3px;">Analía & Malvi</h3>
-          <p style="font-size:0.78rem; color:var(--text-muted); line-height:1.35;">Maestra heladera de Heladería Las Malvinas junto a su fiel compañero Malvi para salvar el verano riojano.</p>
-        </div>
-      </div>
-      <div class="card promo-banner">
-        <span class="promo-tag">🔥 Sorteo Semanal Activo</span>
-        <h2>¡Recuperá los Sabores y Ganá!</h2>
-        <p>Avanzá por los 3 mundos riojanos, recolectá cucuruchos, esquivá el Calor de 45°C y vencé al Maestro Heladero Industrial. ¡Canjeá tu cupón de hasta <strong>20% OFF</strong> en el local y participá por <strong>1 KG de Helado Semanal</strong>!</p>
-      </div>
-
-      <div class="card">
-        <div class="card-header">
-          <h3>🏆 Ranking Top 10 — La Rioja</h3>
-          <button class="btn btn-pink" id="manualRegisterBtn" style="padding:4px 9px;font-size:0.74rem;">+ Registrar mi Puntaje</button>
-        </div>
-        <ul class="ranking-list" id="rankingList"></ul>
-      </div>
-
-      <div class="card" style="font-size: 0.82rem; color: var(--text-muted); line-height: 1.5;">
-        <strong style="color: #fff; display:block; margin-bottom:4px;">💡 Información para el jugador:</strong>
-        • Podés volver al <strong>Escenario Principal</strong> en cualquier momento con el botón superior.<br>
-        • Usá la tecla <strong>X / Shift</strong> o el botón <strong>[❄️ TIRO]</strong> para congelar a los enemigos con el Poder Malvi.<br>
-        • Al superar 500, 1000, 1500 y 2000 puntos desbloqueás cupones de descuento automáticos.
-      </div>
-    </aside>
   </div>
 
-  <!-- MODAL: REGISTRO EN EL RANKING Y CUPÓN DINÁMICO -->
+  <!-- MODAL: SALÓN DE LA FAMA (RANKING TOP 10) -->
+  <div class="modal-overlay" id="rankingModal">
+    <div class="modal-box" style="max-width:580px;">
+      <div class="modal-title">🏆 Salón de la Fama — Top 10</div>
+      <div class="modal-sub">Heladería Las Malvinas — Récords semanales por 1 Kg de Helado:</div>
+
+      <ul class="ranking-list" id="rankingList" style="max-height:360px; overflow-y:auto; margin:14px 0;"></ul>
+
+      <div class="modal-actions" style="justify-content:space-between; flex-wrap:wrap; gap:8px;">
+        <div style="display:flex; gap:8px;">
+          <button type="button" class="btn btn-pink" id="manualRegisterBtn">🏆 Registrar mi Récord</button>
+          <button type="button" class="btn" id="openAdminBtn" style="border-color:#334155; color:#94a3b8; font-size:0.75rem;">🔐 Admin</button>
+        </div>
+        <button type="button" class="btn" id="closeRankingBtn">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: OPCIONES & CONFIGURACIÓN -->
+  <div class="modal-overlay" id="configModal">
+    <div class="modal-box" style="max-width:560px;">
+      <div class="modal-title">⚙️ Opciones del Arcade</div>
+      <div class="modal-sub">Ajustes de juego, niveles y controles:</div>
+
+      <div style="display:flex; flex-direction:column; gap:12px; margin:16px 0;">
+        <!-- Sonido -->
+        <div style="display:flex; justify-content:space-between; align-items:center; background:#0f172a; padding:12px 16px; border-radius:10px; border:1px solid #334155;">
+          <div>
+            <strong style="display:block; color:#ffffff;">🔊 Efectos de Sonido</strong>
+            <small style="color:#94a3b8;">Sintetizador retro 8-bit</small>
+          </div>
+          <button type="button" class="btn btn-pink" id="cfgSoundToggle">Sonido: ON</button>
+        </div>
+
+        <!-- Pantalla Completa -->
+        <div style="display:flex; justify-content:space-between; align-items:center; background:#0f172a; padding:12px 16px; border-radius:10px; border:1px solid #334155;">
+          <div>
+            <strong style="display:block; color:#ffffff;">⛶ Pantalla Completa</strong>
+            <small style="color:#94a3b8;">Modo inmersivo total</small>
+          </div>
+          <button type="button" class="btn btn-cyan" id="cfgFsToggle">Pantalla Completa</button>
+        </div>
+
+        <!-- Selector de Niveles Rápido -->
+        <div style="background:#0f172a; padding:14px; border-radius:10px; border:1px solid #334155;">
+          <strong style="display:block; color:#facc15; margin-bottom:8px;">🗺️ Seleccionar Nivel:</strong>
+          <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px;">
+            <button type="button" class="btn btn-pink btnPlayLevel" data-level="1" style="font-size:0.75rem; padding:8px 4px;">🍧 Nivel 1<br><small>Mostrador</small></button>
+            <button type="button" class="btn btn-cyan btnPlayLevel" data-level="2" style="font-size:0.75rem; padding:8px 4px;">🏔️ Nivel 2<br><small>Miranda</small></button>
+            <button type="button" class="btn btn-yellow btnPlayLevel" data-level="3" style="font-size:0.75rem; padding:8px 4px;">🤖 Nivel 3<br><small>Fábrica Boss</small></button>
+          </div>
+        </div>
+
+        <!-- Teclas -->
+        <div style="background:#0f172a; padding:12px 16px; border-radius:10px; border:1px solid #334155; font-size:0.8rem; color:#cbd5e1; line-height:1.5;">
+          <strong style="color:#38bdf8; display:block; margin-bottom:4px;">⌨️ Controles:</strong>
+          • <strong>Flechas / WASD:</strong> Moverse | <strong>Espacio:</strong> Saltar<br>
+          • <strong>Tecla X / Z / Shift:</strong> Disparar Copos de Nieve (Poder Malvi)<br>
+          • <strong>Tecla ENTER:</strong> Iniciar juego desde la pantalla de inicio
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-pink" id="closeConfigBtn">Guardar y Cerrar</button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="registerModal">
     <div class="modal-box">
       <div class="modal-title" id="modalTitle">🎉 ¡Partida Terminada!</div>
@@ -1178,10 +1087,13 @@
       }
     };
 
-    document.getElementById('soundToggleBtn').addEventListener('click', (e) => {
-      soundEnabled = !soundEnabled;
-      e.target.textContent = soundEnabled ? '🔊 Sonido: ON' : '🔇 Sonido: OFF';
-    });
+    const soundToggleBtn = document.getElementById('soundToggleBtn');
+    if (soundToggleBtn) {
+      soundToggleBtn.addEventListener('click', (e) => {
+        soundEnabled = !soundEnabled;
+        e.target.textContent = soundEnabled ? '🔊 Sonido: ON' : '🔇 Sonido: OFF';
+      });
+    }
 
     /**************************************************************
      * 2. SISTEMA DE RANKING Y BASE DE DATOS LOCAL (Simulación Firebase)
@@ -2525,6 +2437,156 @@
         ctx.fillText('RUTA HELADERA — CORRÉ AL LOCAL', 20, 296);
       }
 
+      // ==============================================================
+      // RENDERIZADO VISUAL DE POZOS Y CAÍDAS AL VACÍO (INEQUÍVOCO)
+      // Detecta huecos entre plataformas de suelo y dibuja abismo, púas,
+      // carteles de alerta reflectivos y conos con balizas titilantes.
+      // ==============================================================
+      const groundPlats = platforms.filter(p => p.type === 'ground').sort((a, b) => a.x - b.x);
+      for (let i = 0; i < groundPlats.length - 1; i++) {
+        const g1 = groundPlats[i];
+        const g2 = groundPlats[i + 1];
+        if (g2.x > g1.x + g1.w) {
+          const pitX = g1.x + g1.w;
+          const pitEndX = g2.x;
+          const pitW = pitEndX - pitX;
+          const pitY = g1.y;
+
+          // 1. Fondo de abismo oscuro con degradado hacia peligro rojo
+          const pitGrad = ctx.createLinearGradient(0, pitY, 0, canvas.height);
+          pitGrad.addColorStop(0, '#05070e');
+          pitGrad.addColorStop(0.35, '#180308');
+          pitGrad.addColorStop(0.8, '#450a0a');
+          pitGrad.addColorStop(1, '#7f1d1d');
+          ctx.fillStyle = pitGrad;
+          ctx.fillRect(pitX, pitY, pitW, canvas.height - pitY + 40);
+
+          // Líneas verticales luminosas de corte lateral
+          ctx.fillStyle = '#ef4444';
+          ctx.fillRect(pitX - 2, pitY, 3, canvas.height - pitY);
+          ctx.fillRect(pitEndX - 1, pitY, 3, canvas.height - pitY);
+
+          // 2. Púas de peligro puntiagudas en el fondo del pozo
+          const spikeW = 12;
+          const spikeCount = Math.floor(pitW / spikeW);
+          ctx.fillStyle = '#ef4444';
+          ctx.strokeStyle = '#facc15';
+          ctx.lineWidth = 1;
+          for (let s = 0; s < spikeCount; s++) {
+            const sx = pitX + s * spikeW;
+            ctx.beginPath();
+            ctx.moveTo(sx, canvas.height);
+            ctx.lineTo(sx + spikeW / 2, canvas.height - 18);
+            ctx.lineTo(sx + spikeW, canvas.height);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+          }
+
+          // 3. Cartel flotante reflectivo animado "⚠️ ¡POZO! ¡SALTÁ!"
+          const signW = 104;
+          const signH = 26;
+          const signX = pitX + (pitW - signW) / 2;
+          const signY = pitY - 38 + Math.sin(frameCount * 0.1) * 3;
+          ctx.fillStyle = 'rgba(0,0,0,0.55)';
+          ctx.fillRect(signX + 2, signY + 2, signW, signH);
+          ctx.fillStyle = '#facc15';
+          ctx.fillRect(signX, signY, signW, signH);
+          ctx.strokeStyle = '#000000';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(signX, signY, signW, signH);
+          ctx.fillStyle = '#000000';
+          ctx.font = 'bold 9.5px monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText('⚠️ ¡POZO! ¡SALTÁ! ⬆', signX + signW / 2, signY + 16);
+          ctx.textAlign = 'left';
+
+          // 4. Franjas diagonales de peligro reflectivas amarillo y negro en el filo antes de caer
+          const stripeW = 40;
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(pitX - stripeW, pitY, stripeW, 16);
+          ctx.clip();
+          for (let sx = pitX - stripeW - 20; sx < pitX + 20; sx += 12) {
+            ctx.fillStyle = '#facc15';
+            ctx.beginPath();
+            ctx.moveTo(sx, pitY + 16);
+            ctx.lineTo(sx + 6, pitY + 16);
+            ctx.lineTo(sx + 16, pitY);
+            ctx.lineTo(sx + 10, pitY);
+            ctx.closePath();
+            ctx.fill();
+            ctx.fillStyle = '#090d16';
+            ctx.beginPath();
+            ctx.moveTo(sx + 6, pitY + 16);
+            ctx.lineTo(sx + 12, pitY + 16);
+            ctx.lineTo(sx + 22, pitY);
+            ctx.lineTo(sx + 16, pitY);
+            ctx.closePath();
+            ctx.fill();
+          }
+          ctx.restore();
+
+          // Franjas en el borde receptor (después del pozo)
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(pitEndX, pitY, stripeW, 16);
+          ctx.clip();
+          for (let sx = pitEndX - 20; sx < pitEndX + stripeW + 20; sx += 12) {
+            ctx.fillStyle = '#facc15';
+            ctx.beginPath();
+            ctx.moveTo(sx, pitY + 16);
+            ctx.lineTo(sx + 6, pitY + 16);
+            ctx.lineTo(sx + 16, pitY);
+            ctx.lineTo(sx + 10, pitY);
+            ctx.closePath();
+            ctx.fill();
+            ctx.fillStyle = '#090d16';
+            ctx.beginPath();
+            ctx.moveTo(sx + 6, pitY + 16);
+            ctx.lineTo(sx + 12, pitY + 16);
+            ctx.lineTo(sx + 22, pitY);
+            ctx.lineTo(sx + 16, pitY);
+            ctx.closePath();
+            ctx.fill();
+          }
+          ctx.restore();
+
+          // 5. Conos de seguridad vial naranjas con balizas luminosas titilantes
+          const blink = Math.floor(frameCount / 12) % 2 === 0;
+          const drawSafetyCone = (cx, cy) => {
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(cx - 3, cy + 22, 18, 4);
+            ctx.fillStyle = '#f97316';
+            ctx.beginPath();
+            ctx.moveTo(cx, cy + 22);
+            ctx.lineTo(cx + 6, cy + 4);
+            ctx.lineTo(cx + 12, cy + 22);
+            ctx.closePath();
+            ctx.fill();
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.moveTo(cx + 2, cy + 15);
+            ctx.lineTo(cx + 4, cy + 10);
+            ctx.lineTo(cx + 8, cy + 10);
+            ctx.lineTo(cx + 10, cy + 15);
+            ctx.closePath();
+            ctx.fill();
+            ctx.fillStyle = blink ? '#ef4444' : '#facc15';
+            ctx.beginPath();
+            ctx.arc(cx + 6, cy + 3, 3.5, 0, Math.PI * 2);
+            ctx.fill();
+            if (blink) {
+              ctx.strokeStyle = 'rgba(239, 68, 68, 0.6)';
+              ctx.lineWidth = 2;
+              ctx.stroke();
+            }
+          };
+          drawSafetyCone(pitX - 18, pitY - 24);
+          drawSafetyCone(pitEndX + 6, pitY - 24);
+        }
+      }
+
       // Dibujar Plataformas (Mostrador Heladero en Nivel 1 o Asfalto en Nivel 2) y Tachos
       for (const plat of platforms) {
         if (plat.type === 'ground') {
@@ -3703,105 +3765,209 @@
       }
     });
 
-    /**************************************************************
-     * 8. NAVEGACIÓN: ESCENARIO PRINCIPAL (LOBBY) & JUEGO
+            /**************************************************************
+     * 8. SISTEMA DE PANTALLAS ARCADE, PANTALLA COMPLETA & MODALES
      **************************************************************/
-    const lobbyScreen = document.getElementById('lobbyScreen');
-    const gameScreen = document.getElementById('gameScreen');
-    const btnNavLobby = document.getElementById('btnNavLobby');
-    const btnNavGame = document.getElementById('btnNavGame');
-    const btnHeroPlay = document.getElementById('btnHeroPlay');
-    const btnHeroStory = document.getElementById('btnHeroStory');
-    const btnHeroLevels = document.getElementById('btnHeroLevels');
-    const btnHudBack = document.getElementById('btnHudBack');
+    const arcadeTitleScreen = document.getElementById('arcadeTitleScreen');
+    const arcadeGameScreen = document.getElementById('arcadeGameScreen');
+    const rankingModal = document.getElementById('rankingModal');
+    const configModal = document.getElementById('configModal');
 
-    function showScreen(screen) {
-      if (screen === 'game') {
-        if (lobbyScreen) lobbyScreen.style.display = 'none';
-        if (gameScreen) gameScreen.style.display = 'grid';
-        if (btnNavGame) {
-          btnNavGame.classList.add('btn-pink');
-          btnNavGame.classList.remove('btn-cyan');
-        }
-        if (btnNavLobby) {
-          btnNavLobby.classList.remove('btn-pink');
-          btnNavLobby.classList.add('btn-cyan');
-        }
+    // Cambiar entre Pantalla de Inicio (Title Screen) y Pantalla de Juego
+    function showArcadeScreen(view) {
+      if (view === 'game') {
+        if (arcadeTitleScreen) arcadeTitleScreen.style.display = 'none';
+        if (arcadeGameScreen) arcadeGameScreen.style.display = 'flex';
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
-        if (lobbyScreen) lobbyScreen.style.display = 'block';
-        if (gameScreen) gameScreen.style.display = 'none';
-        if (btnNavLobby) {
-          btnNavLobby.classList.add('btn-pink');
-          btnNavLobby.classList.remove('btn-cyan');
-        }
-        if (btnNavGame) {
-          btnNavGame.classList.remove('btn-pink');
-          btnNavGame.classList.add('btn-cyan');
-        }
+        if (arcadeTitleScreen) arcadeTitleScreen.style.display = 'block';
+        if (arcadeGameScreen) arcadeGameScreen.style.display = 'none';
+        renderRanking();
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
     }
 
-    if (btnNavLobby) btnNavLobby.addEventListener('click', () => showScreen('lobby'));
-    if (btnHudBack) btnHudBack.addEventListener('click', () => showScreen('lobby'));
-
-    if (btnNavGame) {
-      btnNavGame.addEventListener('click', () => {
-        showScreen('game');
-        if (gameState !== 'PLAYING') {
-          gameState = 'PLAYING';
-          buildLevel(currentLevel || 1);
+    // PANTALLA COMPLETA NATIVA (FULLSCREEN API)
+    function toggleFullscreen() {
+      const target = document.getElementById('arcadeStage') || document.documentElement;
+      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        if (target.requestFullscreen) {
+          target.requestFullscreen().catch(() => {});
+        } else if (target.webkitRequestFullscreen) {
+          target.webkitRequestFullscreen();
         }
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        }
+      }
+    }
+
+    function updateFsButtons() {
+      const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
+      const label = isFs ? '🗗 Salir Pantalla Completa' : '⛶ Pantalla Completa';
+      const btns = [
+        document.getElementById('quickFsBtn'),
+        document.getElementById('btnGameFs'),
+        document.getElementById('cfgFsToggle')
+      ];
+      btns.forEach(b => {
+        if (b) b.textContent = label;
       });
     }
 
-    if (btnHeroPlay) {
-      btnHeroPlay.addEventListener('click', () => {
-        showScreen('game');
-        currentLevel = 1;
-        score = 0;
-        conesCollected = 0;
-        lives = 3;
-        player.superMode = false;
-        gameState = 'PLAYING';
-        buildLevel(1);
+    document.addEventListener('fullscreenchange', updateFsButtons);
+    document.addEventListener('webkitfullscreenchange', updateFsButtons);
+
+    // Conectar botones de Pantalla Completa
+    ['quickFsBtn', 'btnGameFs', 'cfgFsToggle'].forEach(id => {
+      const b = document.getElementById(id);
+      if (b) b.addEventListener('click', toggleFullscreen);
+    });
+
+    // Iniciar Juego Oficial
+    function startOfficialGame(levelNum = 1) {
+      currentLevel = levelNum;
+      score = (levelNum - 1) * 600;
+      conesCollected = 0;
+      lives = 3;
+      player.superMode = false;
+      gameState = 'PLAYING';
+      buildLevel(levelNum);
+      showArcadeScreen('game');
+      if (soundEnabled) SFX.cone();
+    }
+
+    // BOTONES EN EL FONDO PIXEL ART (HITBOXES)
+    const btnTitlePlay = document.getElementById('btnTitlePlay');
+    if (btnTitlePlay) {
+      btnTitlePlay.addEventListener('click', () => startOfficialGame(1));
+    }
+
+    const btnTitleOptions = document.getElementById('btnTitleOptions');
+    if (btnTitleOptions) {
+      btnTitleOptions.addEventListener('click', () => {
+        if (soundEnabled) SFX.blip();
+        if (configModal) configModal.classList.add('active');
       });
     }
 
-    if (btnHeroStory) {
-      btnHeroStory.addEventListener('click', () => {
-        const sec = document.getElementById('sectionStory');
-        if (sec) sec.scrollIntoView({ behavior: 'smooth' });
+    const btnTitleExit = document.getElementById('btnTitleExit');
+    if (btnTitleExit) {
+      btnTitleExit.addEventListener('click', () => {
+        if (soundEnabled) SFX.blip();
+        renderRanking();
+        if (rankingModal) rankingModal.classList.add('active');
       });
     }
 
-    if (btnHeroLevels) {
-      btnHeroLevels.addEventListener('click', () => {
-        const sec = document.getElementById('sectionWorlds');
-        if (sec) sec.scrollIntoView({ behavior: 'smooth' });
+    // BOTONES RÁPIDOS SUPERIORES EN TITLE SCREEN
+    const quickRankingBtn = document.getElementById('quickRankingBtn');
+    if (quickRankingBtn) {
+      quickRankingBtn.addEventListener('click', () => {
+        if (soundEnabled) SFX.blip();
+        renderRanking();
+        if (rankingModal) rankingModal.classList.add('active');
       });
     }
 
+    const quickSoundBtn = document.getElementById('quickSoundBtn');
+    function updateSoundUi() {
+      const text = soundEnabled ? '🔊 Sonido: ON' : '🔇 Sonido: OFF';
+      if (quickSoundBtn) quickSoundBtn.textContent = text;
+      const cfgBtn = document.getElementById('cfgSoundToggle');
+      if (cfgBtn) cfgBtn.textContent = soundEnabled ? 'Sonido: ON' : 'Sonido: OFF';
+    }
+
+    if (quickSoundBtn) {
+      quickSoundBtn.addEventListener('click', () => {
+        soundEnabled = !soundEnabled;
+        updateSoundUi();
+        if (soundEnabled) SFX.cone();
+      });
+    }
+    const cfgSoundToggle = document.getElementById('cfgSoundToggle');
+    if (cfgSoundToggle) {
+      cfgSoundToggle.addEventListener('click', () => {
+        soundEnabled = !soundEnabled;
+        updateSoundUi();
+        if (soundEnabled) SFX.cone();
+      });
+    }
+
+    // Botones del juego para volver o configurar
+    const btnGameHome = document.getElementById('btnGameHome');
+    if (btnGameHome) {
+      btnGameHome.addEventListener('click', () => showArcadeScreen('title'));
+    }
+
+    const btnGameConfig = document.getElementById('btnGameConfig');
+    if (btnGameConfig) {
+      btnGameConfig.addEventListener('click', () => {
+        if (configModal) configModal.classList.add('active');
+      });
+    }
+
+    // Tecla ENTER y ESPACIO en pantalla de inicio inician el juego
+    window.addEventListener('keydown', (e) => {
+      if ((e.key === 'Enter' || e.code === 'Enter') && arcadeTitleScreen && arcadeTitleScreen.style.display !== 'none') {
+        const anyModalActive = document.querySelector('.modal-overlay.active');
+        if (!anyModalActive) {
+          startOfficialGame(1);
+        }
+      }
+    });
+
+    // CERRAR MODALES
+    const closeRankingBtn = document.getElementById('closeRankingBtn');
+    if (closeRankingBtn) {
+      closeRankingBtn.addEventListener('click', () => {
+        if (rankingModal) rankingModal.classList.remove('active');
+      });
+    }
+
+    const closeConfigBtn = document.getElementById('closeConfigBtn');
+    if (closeConfigBtn) {
+      closeConfigBtn.addEventListener('click', () => {
+        if (configModal) configModal.classList.remove('active');
+      });
+    }
+
+    // SELECTOR DE NIVEL EN MODAL
     document.querySelectorAll('.btnPlayLevel').forEach(btn => {
       btn.addEventListener('click', () => {
         const lvl = parseInt(btn.getAttribute('data-level'), 10) || 1;
-        currentLevel = lvl;
-        score = (lvl - 1) * 600;
-        conesCollected = 0;
-        lives = 3;
-        player.superMode = false;
-        gameState = 'PLAYING';
-        showScreen('game');
-        buildLevel(lvl);
+        if (configModal) configModal.classList.remove('active');
+        startOfficialGame(lvl);
       });
     });
 
-    // INICIAR EN EL ESCENARIO PRINCIPAL (LOBBY OFICIAL)
+    // PANEL ADMIN
+    const openAdminBtn = document.getElementById('openAdminBtn');
+    if (openAdminBtn) {
+      openAdminBtn.addEventListener('click', () => {
+        if (rankingModal) rankingModal.classList.remove('active');
+        renderRanking();
+        if (adminModal) adminModal.classList.add('active');
+      });
+    }
+
+    // CERRAR MODALES AL HACER CLIC AFUERA
+    document.querySelectorAll('.modal-overlay').forEach(modal => {
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          modal.classList.remove('active');
+        }
+      });
+    });
+
+    // INICIAR EN LA PANTALLA DE INICIO ARCADE PIXEL ART
     renderRanking();
     buildLevel(1);
-    showScreen('lobby');
+    showArcadeScreen('title');
     gameLoop();
-  </script>
+</script>
 </body>
 </html>
