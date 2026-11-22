@@ -1,95 +1,114 @@
-# 🍦 Cómo Modificar el Videojuego: MALVINAS ARCADE — La Aventura del Sabor
+# 🍦 Cómo Modificar el Videojuego: MALVINAS ARCADE
 
-Todo el videojuego y el escenario principal se encuentran en el archivo [`index.html`](file:///C:/Users/david/Desktop/Heladeria%20Malvinas/Juego_Web/index.html).  
-Está desarrollado en **HTML5 Canvas puro + JavaScript moderno + CSS responsivo**, sin dependencias ni librerías externas pesadas. Funciona inmediatamente al abrirlo en cualquier navegador (Chrome, Edge, Firefox, Safari en PC, tablet o celular).
-
----
-
-## 🏛️ 1. Estructura del Videojuego: Escenario Principal y Juego
-
-El proyecto cuenta con dos vistas principales conectadas:
-1. **Escenario Principal (Lobby / Portal Informativo):**
-   - Presentación oficial de la marca: *Heladería Las Malvinas (La Rioja)*.
-   - Historia y lore completo del documento oficial: El Freezer Legendario, la explosión de frío provocada por Malvi y la amenaza del *Maestro Heladero Industrial*.
-   - Presentación de los protagonistas: **Analía** (Maestra Heladera) y **Malvi** (Mascota oficial).
-   - Mapa interactivo de los **3 Mundos de La Rioja** con botones para iniciar cada nivel.
-   - Tabla oficial de beneficios comerciales y cupones de descuento (Sección 7 del PDF).
-   - Guía visual de controles para PC y Celulares.
-2. **Pantalla de Juego (Arcade Canvas):**
-   - Canvas interactivo de 960x480 (escalable automáticamente a pantallas de celulares).
-   - HUD superior con vidas, cucuruchos, puntaje, nivel y sabor a recuperar.
-   - Controles táctiles en pantalla para dispositivos móviles.
-
-Para alternar entre el Lobby y el Juego, los botones de navegación superiores ("🏠 Escenario Principal" y "🎮 Jugar Ahora") cambian de pantalla al instante sin recargar la página.
+El código del proyecto ahora está **completamente separado y modularizado en 3 partes principales**, para que puedas modificar cosas específicas en segundos sin perderte en miles de líneas de código:
 
 ---
 
-## 🗺️ 2. Los 3 Mundos y el Boss Final
+## 📁 Estructura Modular de Archivos
 
-Basado en la propuesta oficial del cliente (`Propuestas_Cliente/Presentacion_Las_Malvinas_Arcade.pdf`):
-
-1. **Nivel 1: Dique Los Sauces & Mostrador Heladero**
-   - Paisaje de montañas riojanas y agua cristalina combinado con el emblemático mostrador de mármol Carrara y vitrina de helados.
-   - **Sabor Esencial a recuperar:** 🍓 *Frutilla a la Reina*.
-2. **Nivel 2: Parque de la Ciudad**
-   - Noche estrellada riojana, árboles, farolas y mayor velocidad en las plataformas y obstáculos.
-   - **Sabor Esencial a recuperar:** 🍮 *Dulce de Leche Granizado*.
-3. **Nivel 3: Microcentro Riojano & Batalla Final**
-   - Calles del microcentro, skyline de la ciudad iluminada y la fachada con marquesina de *Heladería Las Malvinas (Casa Central)*.
-   - **Jefe Final (Boss):** **Maestro Heladero Industrial** (Robot gris de 3 puntos de vida que patrulla y dispara proyectiles industriales).
-   - Al derrotar al robot con los copos de nieve de Malvi, se desbloquea la meta y se recupera el sabor definitivo: 🍫 *Chocolate Malvinas*.
+| Archivo | Qué contiene | ¿Cuándo editarlo? |
+| :--- | :--- | :--- |
+| **[`edicion.js`](file:///C:/Users/david/Desktop/Heladeria%20Malvinas/Juego_Web/edicion.js)** | **PARTE DE EDICIÓN Y CONFIGURACIÓN** | ✏️ Para cambiar sabores del mostrador, cupones de descuento, puntos, vidas, saltos, textos y nombres de niveles. |
+| **[`logica.js`](file:///C:/Users/david/Desktop/Heladeria%20Malvinas/Juego_Web/logica.js)** | **PARTE DE LÓGICA Y MOTOR DE FÍSICAS** | ⚙️ Para modificar físicas, gravedad, enemigos, Jefe Final, disparo de copos de nieve, sintetizador de sonido retro y dibujo en Canvas. |
+| **[`juego.js`](file:///C:/Users/david/Desktop/Heladeria%20Malvinas/Juego_Web/juego.js)** | **PARTE DE JUEGO E INTERFAZ** | 🎮 Para ajustar el bucle de juego, la pantalla de carga con Analía, controles de PC y celular, modales de Ranking y aviso de rotación horizontal. |
+| **[`styles.css`](file:///C:/Users/david/Desktop/Heladeria%20Malvinas/Juego_Web/styles.css)** | **HOJA DE ESTILOS CSS** | 🎨 Para cambiar colores, fuentes, sombras neón, botones transparentes o animaciones. |
+| **[`index.html`](file:///C:/Users/david/Desktop/Heladeria%20Malvinas/Juego_Web/index.html)** | **ESTRUCTURA HTML PRINCIPAL** | 🏛️ Contenedores de pantallas, canvas 16:9, HUD, botones táctiles y modales. |
 
 ---
 
-## 🎁 3. Tabla Oficial de Premios y Cupones de Descuento
+## ✏️ 1. Parte de Edición: ¿Qué podés cambiar en `edicion.js`?
 
-La función `openEndModal(isVictory)` calcula automáticamente el descuento y cupón según el puntaje alcanzado en la partida (siguiendo estrictamente la Sección 7 del PDF):
+Abrí [`edicion.js`](file:///C:/Users/david/Desktop/Heladeria%20Malvinas/Juego_Web/edicion.js) con cualquier editor de texto o bloc de notas:
 
-| Puntaje Final | Descuento Obtenido | Código de Cupón | Beneficio Extra |
-| :--- | :---: | :---: | :--- |
-| **Menos de 500 pts** | Sin descuento | — | Continuar practicando |
-| **500 a 999 pts** | **5% OFF** | `MALVINAS-5OFF` | Cupón digital en mostrador |
-| **1.000 a 1.499 pts** | **10% OFF** | `MALVINAS-10OFF` | Cupón digital en mostrador |
-| **1.500 a 1.999 pts** | **15% OFF** | `MALVINAS-15OFF` | Cupón digital en mostrador |
-| **2.000 o más pts** | **20% OFF** | `MALVINAS-20VIP-1KG` | 🏆 **Participa por el 1 KG de Helado Semanal** |
+### A. Cambiar los Sabores de Helado de la Pizarra
+En la constante `CONFIG_SABORES_MOSTRADOR`:
+```javascript
+const CONFIG_SABORES_MOSTRADOR = [
+  'DULCE DE LECHE GRANIZADO',
+  'FRUTILLA A LA REINA',
+  'CHOCOLATE MALVINAS',
+  // ¡Podés agregar los sabores nuevos que quieras acá!
+];
+```
 
-Si querés cambiar los porcentajes o códigos de cupón, buscalos en la función `openEndModal` dentro de [`index.html`](file:///C:/Users/david/Desktop/Heladeria%20Malvinas/Juego_Web/index.html).
+### B. Cambiar Códigos de Cupones y Descuentos
+En la constante `CONFIG_CUPONES`:
+```javascript
+const CONFIG_CUPONES = [
+  { minScore: 2000, badge: '🌟 ¡20% OFF!', codigo: 'MALVINAS-20VIP-1KG', descripcion: '...' },
+  { minScore: 1500, badge: '🎁 ¡15% OFF!', codigo: 'MALVINAS-15OFF', descripcion: '...' },
+  { minScore: 1000, badge: '🎁 ¡10% OFF!', codigo: 'MALVINAS-10OFF', descripcion: '...' },
+  { minScore: 500,  badge: '🎁 ¡5% OFF!',  codigo: 'MALVINAS-5OFF',  descripcion: '...' }
+];
+```
+
+### C. Cambiar Vidas, Velocidad y Salto de Analía
+En `CONFIG_JUGADOR`:
+```javascript
+const CONFIG_JUGADOR = {
+  vidasIniciales: 3,         // Cantidad de vidas
+  velocidadMovimiento: 4.8,  // Velocidad al correr
+  fuerzaSalto: -12.5,        // Altura del salto
+  gravedad: 0.55             // Gravedad
+};
+```
+
+### D. Cambiar Puntos por Acción
+En `CONFIG_PUNTOS`:
+```javascript
+const CONFIG_PUNTOS = {
+  cucurucho: 50,        // Puntos por agarrar un cono
+  congelarEnemigo: 300, // Puntos por congelar un Solcito/Llamita
+  superPote1KG: 500,    // Puntos por el pote súper de 1KG
+  vencerBoss: 1000      // Puntos por derrotar al Robot en el Nivel 3
+};
+```
+
+### E. Música Retro Chiptune (BGM)
+En `CONFIG_MUSICA`:
+```javascript
+const CONFIG_MUSICA = {
+  tempoNormal: 140,    // Ritmo normal de la melodía en BPM
+  tempoSuperModo: 185, // Ritmo acelerado durante el Súper Modo 1KG
+  volumenMelodia: 0.035,
+  volumenBajo: 0.045
+};
+```
+
+### F. Cartel QR Imprimible para Mesas
+En `CONFIG_CARTEL_QR`:
+```javascript
+const CONFIG_CARTEL_QR = {
+  titulo: '¡JUGÁ MIENTRAS DISFRUTÁS TU HELADO!',
+  subtitulo: 'Escaneá con la cámara de tu celular y ganá descuentos en tu compra:',
+  ubicacion: '📍 Heladería Las Malvinas — La Rioja, Argentina'
+};
+```
 
 ---
 
-## ❄️ 4. Disparo de Copos de Nieve (Poder Malvi)
+## 🕹️ 2. Pantalla de Carga Retro (Limpia y Auténtica)
 
-- **Compañero Malvi:** Malvi flota junto al hombro de Analía con una suave animación oscilante y destellos de escarcha.
-- **Controles de disparo:**
-  - **Teclado en PC:** Tecla **X**, **Z**, **C**, **F**, **Shift** o **E**.
-  - **Celular / Tablet:** Botón táctil celeste **[❄️ TIRO]**.
-- **Mecánica:**
-  - Los copos de nieve giran con animación fractal de 6 brazos de cristal y núcleo brillante.
-  - Al impactar a los Solcitos de 45°C o Llamitas, los congela al instante y otorga **+300 pts**.
-  - Al impactar al *Maestro Heladero Industrial* en el Nivel 3, le resta vida (`HP: 2/3`, `HP: 1/3`) hasta vencerlo, otorgando **+1000 pts extra**.
-- **Modo Súper 1KG:** Al recoger el pote de 1KG de los bloques sorpresa, Analía y Malvi disparan ráfagas dobles en abanico con escarcha fucsia.
+- La pantalla de carga previa fue depurada: se eliminaron todos los textos y tags que se veían artificiales o tipo IA.
+- Ahora muestra una estética arcade clásica y directa:
+  - **MALVINAS ARCADE — NIVEL 1**
+  - **Analía** alternando sus 6 poses sobre su plataforma iluminada.
+  - Barra de carga retro y el texto clásico intermitente **`NOW LOADING...`**.
 
 ---
 
-## 👤 5. Poses y Sprites de Analía (Animación Desacoplada)
+## 📱 3. Celular en Modo Horizontal Obligatorio
 
-El juego cuenta con un controlador de animación que utiliza sprites individuales de alta definición ubicados en la carpeta [`sprites/`](file:///C:/Users/david/Desktop/Heladeria%20Malvinas/Juego_Web/sprites/):
-
-* [`analia_quieto.png`](file:///C:/Users/david/Desktop/Heladeria%20Malvinas/Juego_Web/sprites/analia_quieto.png): Pose idle de reposo con sutil respiración.
-* [`analia_correr_1.png`](file:///C:/Users/david/Desktop/Heladeria%20Malvinas/Juego_Web/sprites/analia_correr_1.png): Paso 1 de carrera.
-* [`analia_correr_2.png`](file:///C:/Users/david/Desktop/Heladeria%20Malvinas/Juego_Web/sprites/analia_correr_2.png): Paso 2 de carrera (ciclo dinámico).
-* [`analia_salto.png`](file:///C:/Users/david/Desktop/Heladeria%20Malvinas/Juego_Web/sprites/analia_salto.png): Pose acrobática en el aire.
-* [`analia_disparo.png`](file:///C:/Users/david/Desktop/Heladeria%20Malvinas/Juego_Web/sprites/analia_disparo.png): Lanzamiento de ráfaga de hielo junto a Malvi.
-* [`analia_victoria.png`](file:///C:/Users/david/Desktop/Heladeria%20Malvinas/Juego_Web/sprites/analia_victoria.png): Celebración en la meta con brazos en alto.
-
-Todas las imágenes tienen fondo transparente, proporción exacta y renderizado suavizado en alta calidad (`imageSmoothingQuality = 'high'`). Si querés retocar cualquier pose, podés editar directamente el archivo correspondiente dentro de `sprites/` sin afectar la física del salto ni las colisiones.
+- Al entrar desde un móvil, el juego detecta la orientación.
+- Si está en vertical, muestra el aviso retro **`¡GIRÁ TU CELULAR!`** invitando a rotarlo para disfrutar de la pantalla panorámica 16:9 y los botones a los lados.
+- Apenas el usuario gira el teléfono, el aviso desaparece al instante y la partida queda lista para jugar.
 
 ---
 
-## 🔐 6. Panel de Dueño / Administrador y Base de Datos de Clientes
+## 🎮 4. Navegación Arcade por Teclado en la Pantalla de Inicio
 
-- Hacé clic en el botón superior derecho **"🔐 Panel Dueño / Admin"**.
-- Características:
-  - Registro de participantes: Nombre, Teléfono / Instagram, Puntaje alcanzado, Cupón obtenido y Fecha.
-  - Botón **"📥 Descargar Clientes en Excel (.CSV)"**: genera un archivo compatible con Excel para campañas de WhatsApp Marketing y fidelización.
-  - Botón **"🔄 Reiniciar Sorteo"**: limpia los registros de la semana para comenzar una nueva edición del concurso.
+- **Flechas [▲ / ▼] o [W / S]:** Moverse entre **JUGAR**, **OPCIONES**, **SALÓN DE LA FAMA** y **CARTEL MESAS**.
+- **Flechas [◀ / ▶] o [A / D]:** Saltar entre las opciones principales de la izquierda y los botones rápidos de la barra superior.
+- **[ENTER] o [ESPACIO]:** Abrir o activar la opción seleccionada (con sonido retro).
+- **[ESCAPE]:** Cerrar cualquier modal abierto (Opciones, Ranking, Cartel QR) y volver de inmediato al inicio.
+- **Cursor de Cucurucho (`🍦 ▶`):** Apunta y flota dinámicamente sobre la opción activa mientras la barra inferior muestra su descripción en tiempo real.
