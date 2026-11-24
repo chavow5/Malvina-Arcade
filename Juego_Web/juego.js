@@ -16,15 +16,21 @@
      * 6. CONTROLES (TECLADO PC + BOTONES TÁCTILES CELULAR)
      **************************************************************/
     window.addEventListener('keydown', (e) => {
+      if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
+      if (document.querySelector('.modal-overlay.active')) return;
+      if (typeof gameState !== 'undefined' && gameState !== 'PLAYING') return;
+
       if (['ArrowLeft', 'KeyA'].includes(e.code)) keys.left = true;
       if (['ArrowRight', 'KeyD'].includes(e.code)) keys.right = true;
       if (['ArrowUp', 'KeyW', 'Space'].includes(e.code)) {
         keys.jump = true;
-        if (e.code === 'Space' && document.activeElement.tagName !== 'INPUT') e.preventDefault();
+        if (e.code === 'Space') e.preventDefault();
       }
       if (['KeyX', 'KeyZ', 'KeyC', 'KeyF', 'ShiftLeft', 'ShiftRight', 'KeyE'].includes(e.code)) {
-        keys.shoot = true;
-        shootIceBall();
+        if (!e.repeat) {
+          keys.shoot = true;
+          shootIceBall();
+        }
       }
     });
 
@@ -38,16 +44,16 @@
     function bindTouchButton(btnId, keyName) {
       const btn = document.getElementById(btnId);
       if (!btn) return;
-      const start = (e) => { 
-        e.preventDefault(); 
-        keys[keyName] = true; 
-        btn.classList.add('active'); 
+      const start = (e) => {
+        e.preventDefault();
+        keys[keyName] = true;
+        btn.classList.add('active');
         if (keyName === 'shoot') shootIceBall();
       };
-      const end = (e) => { 
-        e.preventDefault(); 
-        keys[keyName] = false; 
-        btn.classList.remove('active'); 
+      const end = (e) => {
+        e.preventDefault();
+        keys[keyName] = false;
+        btn.classList.remove('active');
       };
       btn.addEventListener('mousedown', start);
       btn.addEventListener('mouseup', end);
@@ -56,8 +62,62 @@
       btn.addEventListener('touchend', end, { passive: false });
       btn.addEventListener('touchcancel', end, { passive: false });
     }
-    bindTouchButton('btnLeft', 'left');
-    bindTouchButton('btnRight', 'right');
+
+    // D-Pad táctil con deslizamiento fluido del pulgar entre ◀ y ▶ (multitouch real para celular)
+    (function bindSlidingDpad() {
+      const dpad = document.querySelector('.dpad');
+      const btnLeft = document.getElementById('btnLeft');
+      const btnRight = document.getElementById('btnRight');
+      if (!dpad || !btnLeft || !btnRight) {
+        bindTouchButton('btnLeft', 'left');
+        bindTouchButton('btnRight', 'right');
+        return;
+      }
+
+      const setDpadState = (leftActive, rightActive) => {
+        keys.left = leftActive;
+        keys.right = rightActive;
+        btnLeft.classList.toggle('active', leftActive);
+        btnRight.classList.toggle('active', rightActive);
+      };
+
+      const updateDpadFromTouches = (e) => {
+        e.preventDefault();
+        const leftRect = btnLeft.getBoundingClientRect();
+        const rightRect = btnRight.getBoundingClientRect();
+        const pad = 16; // Margen generoso alrededor del pulgar al deslizar
+        let leftActive = false;
+        let rightActive = false;
+
+        for (let i = 0; i < e.touches.length; i++) {
+          const t = e.touches[i];
+          const x = t.clientX;
+          const y = t.clientY;
+          if (y >= Math.min(leftRect.top, rightRect.top) - pad && y <= Math.max(leftRect.bottom, rightRect.bottom) + pad) {
+            if (x >= leftRect.left - pad && x <= leftRect.right + 6) {
+              leftActive = true;
+            } else if (x >= rightRect.left - 6 && x <= rightRect.right + pad) {
+              rightActive = true;
+            }
+          }
+        }
+        setDpadState(leftActive, rightActive);
+      };
+
+      dpad.addEventListener('touchstart', updateDpadFromTouches, { passive: false });
+      dpad.addEventListener('touchmove', updateDpadFromTouches, { passive: false });
+      dpad.addEventListener('touchend', updateDpadFromTouches, { passive: false });
+      dpad.addEventListener('touchcancel', () => setDpadState(false, false), { passive: false });
+
+      // Soporte de mouse para pruebas en PC
+      btnLeft.addEventListener('mousedown', (e) => { e.preventDefault(); setDpadState(true, false); });
+      btnRight.addEventListener('mousedown', (e) => { e.preventDefault(); setDpadState(false, true); });
+      ['mouseup', 'mouseleave'].forEach(ev => {
+        btnLeft.addEventListener(ev, () => { if (keys.left) setDpadState(false, keys.right); });
+        btnRight.addEventListener(ev, () => { if (keys.right) setDpadState(keys.left, false); });
+      });
+    })();
+
     bindTouchButton('btnJump', 'jump');
     bindTouchButton('btnShoot', 'shoot');
 
@@ -75,33 +135,46 @@
 
       const couponBox = document.getElementById('couponBox');
       const couponBadge = document.getElementById('couponBadge');
-      const couponCode = document.getElementById('couponCodeText');
       const couponDesc = document.getElementById('couponDescText');
 
-      const cupones = (typeof CONFIG_CUPONES !== 'undefined') ? CONFIG_CUPONES : [
-        { minScore: 2000, badge: '🌟 ¡MÁXIMO PREMIO: 20% OFF + ENTRADA AL SORTEO!', codigo: 'MALVINAS-20VIP-1KG', descripcion: '¡20% OFF en Heladería Las Malvinas y participás automáticamente por el 1 KG Semanal!' },
-        { minScore: 1500, badge: '🎁 ¡CUPÓN GANADO: 15% OFF!', codigo: 'MALVINAS-15OFF', descripcion: 'Presentá este cupón en el mostrador para obtener un 15% de descuento.' },
-        { minScore: 1000, badge: '🎁 ¡CUPÓN GANADO: 10% OFF!', codigo: 'MALVINAS-10OFF', descripcion: 'Presentá este cupón en el mostrador para obtener un 10% de descuento.' },
-        { minScore: 500, badge: '🎁 ¡CUPÓN GANADO: 5% OFF!', codigo: 'MALVINAS-5OFF', descripcion: 'Presentá este cupón en el mostrador para obtener un 5% de descuento.' }
-      ];
-      const ganado = cupones.find(c => score >= c.minScore);
-      if (ganado) {
-        if (couponBadge) couponBadge.textContent = ganado.badge;
-        if (couponCode) couponCode.textContent = ganado.codigo;
-        if (couponDesc) couponDesc.textContent = ganado.descripcion;
-        couponBox.classList.add('visible');
-      } else {
-        couponBox.classList.remove('visible');
-      }
+      const msgCfg = (typeof CONFIG_MENSAJE_FIN_PARTIDA !== 'undefined') ? CONFIG_MENSAJE_FIN_PARTIDA : {
+        titulo: '🏆 ¡CARGÁ TUS PUNTOS SEMANALES!',
+        descripcion: 'Podés cargar tus puntos de la semana para participar y ganar increíbles premios solo por jugar.'
+      };
+      if (couponBadge) couponBadge.textContent = msgCfg.titulo;
+      if (couponDesc) couponDesc.textContent = msgCfg.descripcion;
+      if (couponBox) couponBox.classList.add('visible');
+
+      const nameInput = document.getElementById('playerName');
+      const contactInput = document.getElementById('playerContact');
+      if (nameInput) nameInput.value = '';
+      if (contactInput) contactInput.value = '';
+
       registerModal.classList.add('active');
+
+      setTimeout(() => {
+        if (nameInput) {
+          nameInput.focus();
+        }
+      }, 60);
     }
 
     function restartFullGame() {
       if (registerModal) registerModal.classList.remove('active');
+      ensureFullscreen();
       startOfficialGame(1);
     }
 
     document.getElementById('closeRegisterBtn').addEventListener('click', restartFullGame);
+
+    const btnEndHome = document.getElementById('btnEndHome');
+    if (btnEndHome) {
+      btnEndHome.addEventListener('click', () => {
+        if (registerModal) registerModal.classList.remove('active');
+        showArcadeScreen('title');
+      });
+    }
+
     document.getElementById('manualRegisterBtn').addEventListener('click', () => {
       gameState = 'GAMEOVER';
       openEndModal(false);
@@ -109,8 +182,8 @@
 
     document.getElementById('scoreForm').addEventListener('submit', (e) => {
       e.preventDefault();
-      const name = document.getElementById('playerName').value;
-      const contact = document.getElementById('playerContact').value;
+      const name = document.getElementById('playerName').value.trim();
+      const contact = document.getElementById('playerContact').value.trim();
       if (name && contact) {
         saveScoreToRanking(name, contact, score);
         document.getElementById('playerName').value = '';
@@ -160,9 +233,38 @@
     const arcadeGameScreen = document.getElementById('arcadeGameScreen');
     const rankingModal = document.getElementById('rankingModal');
     const configModal = document.getElementById('configModal');
+    const pauseModal = document.getElementById('pauseModal');
 
     let loadingTimerId = null;
     let loadingIntervalId = null;
+    let intentionalFsToggle = false;
+
+    function pauseGame() {
+      if (!arcadeGameScreen || arcadeGameScreen.style.display === 'none') return;
+      if (typeof gameState === 'undefined' || gameState !== 'PLAYING') return;
+      if (document.querySelector('.modal-overlay.active')) return;
+
+      gameState = 'PAUSED';
+      if (typeof keys !== 'undefined') {
+        keys.left = false;
+        keys.right = false;
+        keys.jump = false;
+        keys.shoot = false;
+      }
+      if (typeof BGM !== 'undefined' && BGM.stop) BGM.stop();
+      if (soundEnabled && typeof SFX !== 'undefined' && SFX.blip) SFX.blip();
+      if (pauseModal) pauseModal.classList.add('active');
+    }
+
+    function resumeGame() {
+      if (typeof gameState === 'undefined' || gameState !== 'PAUSED') return;
+      if (pauseModal) pauseModal.classList.remove('active');
+      if (typeof lastFrameTime !== 'undefined') lastFrameTime = 0;
+      if (typeof frameAccumulator !== 'undefined') frameAccumulator = 0;
+      gameState = 'PLAYING';
+      if (soundEnabled && typeof SFX !== 'undefined' && SFX.blip) SFX.blip();
+      if (soundEnabled && typeof BGM !== 'undefined' && BGM.start) BGM.start();
+    }
 
     // Cambiar entre Pantalla de Inicio (Title Screen), Carga y Juego
     function showArcadeScreen(view) {
@@ -179,6 +281,7 @@
       } else {
         if (loadingTimerId) { clearTimeout(loadingTimerId); loadingTimerId = null; }
         if (loadingIntervalId) { clearInterval(loadingIntervalId); loadingIntervalId = null; }
+        if (pauseModal) pauseModal.classList.remove('active');
         if (arcadeTitleScreen) arcadeTitleScreen.style.display = 'block';
         if (arcadeGameScreen) arcadeGameScreen.style.display = 'none';
         if (arcadeLoadingScreen) arcadeLoadingScreen.style.display = 'none';
@@ -195,21 +298,44 @@
 
     // PANTALLA COMPLETA NATIVA (FULLSCREEN API)
     function toggleFullscreen() {
-      const target = document.getElementById('arcadeStage') || document.documentElement;
+      intentionalFsToggle = true;
+      setTimeout(() => { intentionalFsToggle = false; }, 450);
+      const target = document.documentElement || document.getElementById('arcadeStage');
       if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-        if (target.requestFullscreen) {
-          target.requestFullscreen().catch(() => {});
-        } else if (target.webkitRequestFullscreen) {
-          target.webkitRequestFullscreen();
+        const req = target.requestFullscreen || target.webkitRequestFullscreen || target.mozRequestFullScreen || target.msRequestFullscreen;
+        if (req) {
+          req.call(target).catch(() => {
+            const stage = document.getElementById('arcadeStage');
+            if (stage && stage.requestFullscreen) stage.requestFullscreen().catch(() => {});
+          });
         }
       } else {
-        if (document.exitFullscreen) {
-          document.exitFullscreen();
-        } else if (document.webkitExitFullscreen) {
-          document.webkitExitFullscreen();
+        const exit = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen;
+        if (exit) {
+          exit.call(document).catch(() => {});
         }
       }
     }
+
+    // Activar Pantalla Completa automáticamente para todos los niveles
+    async function ensureFullscreen() {
+      try {
+        const target = document.documentElement || document.getElementById('arcadeStage');
+        if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+          const req = target.requestFullscreen || target.webkitRequestFullscreen || target.mozRequestFullScreen || target.msRequestFullscreen;
+          if (req) {
+            await req.call(target).catch(() => {
+              const stage = document.getElementById('arcadeStage');
+              if (stage && stage.requestFullscreen) return stage.requestFullscreen().catch(() => {});
+            });
+          }
+        }
+        if (screen.orientation && screen.orientation.lock) {
+          await screen.orientation.lock('landscape').catch(() => {});
+        }
+      } catch (e) {}
+    }
+    window.ensureFullscreen = ensureFullscreen;
 
     function updateFsButtons() {
       const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
@@ -224,8 +350,18 @@
       });
     }
 
-    document.addEventListener('fullscreenchange', updateFsButtons);
-    document.addEventListener('webkitfullscreenchange', updateFsButtons);
+    function handleFullscreenChange() {
+      updateFsButtons();
+      // En navegadores, presionar ESC en pantalla completa sale del fullscreen sin disparar keydown:
+      // pausamos automáticamente para que ESC siempre pause al primer toque.
+      const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
+      if (!isFs && !intentionalFsToggle && typeof gameState !== 'undefined' && gameState === 'PLAYING') {
+        pauseGame();
+      }
+    }
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
 
     // Conectar botones de Pantalla Completa
     ['quickFsBtn', 'btnGameFs', 'cfgFsToggle'].forEach(id => {
@@ -240,20 +376,23 @@
     } catch(e) {}
 
     const LEVEL_DATA = {
-      1: { title: 'NIVEL 1', subtitle: 'DIQUE LOS SAUCES & MOSTRADOR' },
-      2: { title: 'NIVEL 2', subtitle: 'PARQUE DE LA CIUDAD & COSTANERA' },
+      1: { title: 'NIVEL 1', subtitle: 'DIQUE LOS SAUCES & COSTANERA' },
+      2: { title: 'NIVEL 2', subtitle: 'PARQUE DE LA CIUDAD & SUPERDOMO' },
       3: { title: 'NIVEL 3', subtitle: 'MICROCENTRO & JEFE TRAMONTANA' }
     };
 
-    // Iniciar Juego Oficial con Pantalla de Carga Retro y Poses de Analía
-    function startOfficialGame(levelNum = 1) {
+    // Iniciar Juego Oficial con Pantalla de Carga Retro y Poses de Analía (Aplica Pantalla Completa)
+    function startOfficialGame(levelNum = 1, keepState = false) {
+      ensureFullscreen();
       if (loadingTimerId) { clearTimeout(loadingTimerId); loadingTimerId = null; }
       if (loadingIntervalId) { clearInterval(loadingIntervalId); loadingIntervalId = null; }
 
       currentLevel = levelNum;
-      score = (levelNum - 1) * 600;
-      conesCollected = 0;
-      lives = 3;
+      if (!keepState) {
+        score = (levelNum - 1) * 600;
+        conesCollected = 0;
+        lives = 3;
+      }
       player.superMode = false;
       gameState = 'LOADING';
       buildLevel(levelNum);
@@ -285,9 +424,9 @@
       ];
 
       let poseIdx = 0;
-      const stepMs = 380;
+      const stepMs = 630; // ~5.04 segundos (2 segundos más que antes)
       const totalSteps = poses.length;
-      const totalDuration = totalSteps * stepMs; // ~3.04 segundos
+      const totalDuration = totalSteps * stepMs; // ~5.04s
 
       const applyPose = (idx) => {
         const spriteSrc = poses[idx % poses.length];
@@ -316,7 +455,7 @@
         }
       }, stepMs);
 
-      // Concluir la carga tras ~3 segundos e ingresar a la partida
+      // Concluir la carga tras ~5 segundos e ingresar a la partida
       loadingTimerId = setTimeout(() => {
         if (loadingIntervalId) { clearInterval(loadingIntervalId); loadingIntervalId = null; }
         loadingTimerId = null;
@@ -329,6 +468,7 @@
         }, 160);
       }, totalDuration);
     }
+    window.startOfficialGame = startOfficialGame;
 
     // BOTONES EN EL FONDO PIXEL ART (HITBOXES)
     const btnTitlePlay = document.getElementById('btnTitlePlay');
@@ -395,7 +535,37 @@
       });
     }
 
-    // Botones del juego para volver o configurar
+    // Botones del juego para pausar, volver o configurar
+    const btnGamePause = document.getElementById('btnGamePause');
+    if (btnGamePause) {
+      btnGamePause.addEventListener('click', () => {
+        if (gameState === 'PAUSED') resumeGame();
+        else pauseGame();
+      });
+    }
+
+    const btnResumeGame = document.getElementById('btnResumeGame');
+    if (btnResumeGame) {
+      btnResumeGame.addEventListener('click', resumeGame);
+    }
+
+    const btnPauseRestart = document.getElementById('btnPauseRestart');
+    if (btnPauseRestart) {
+      btnPauseRestart.addEventListener('click', () => {
+        if (pauseModal) pauseModal.classList.remove('active');
+        startOfficialGame(currentLevel);
+      });
+    }
+
+    const btnPauseHome = document.getElementById('btnPauseHome');
+    if (btnPauseHome) {
+      btnPauseHome.addEventListener('click', () => {
+        if (pauseModal) pauseModal.classList.remove('active');
+        gameState = 'TITLE';
+        showArcadeScreen('title');
+      });
+    }
+
     const btnGameHome = document.getElementById('btnGameHome');
     if (btnGameHome) {
       btnGameHome.addEventListener('click', () => showArcadeScreen('title'));
@@ -437,7 +607,7 @@
       {
         id: 'btnTitleExit',
         name: 'SALÓN DE LA FAMA',
-        ticker: '🏆 ▶ SALÓN DE LA FAMA — Mirá el Top 10 de mejores puntajes y ganadores del 1 Kg semanal',
+        ticker: '🏆 ▶ SALÓN DE LA FAMA — Mirá el Top 10 semanal y cargá tus puntos para ganar increíbles premios',
         action: () => {
           if (soundEnabled && typeof SFX !== 'undefined' && SFX.blip) SFX.blip();
           renderRanking();
@@ -447,7 +617,7 @@
       {
         id: 'quickQrBtn',
         name: 'CARTEL MESAS',
-        ticker: '📲 ▶ CARTEL MESAS — Mirá e imprimí el código QR y cupones de descuento para las mesas',
+        ticker: '📲 ▶ CARTEL MESAS — Mirá e imprimí el código QR del juego para las mesas',
         action: () => {
           if (soundEnabled && typeof SFX !== 'undefined' && SFX.blip) SFX.blip();
           const qModal = document.getElementById('qrModal');
@@ -457,7 +627,7 @@
       {
         id: 'quickRankingBtn',
         name: 'RÉCORDS TOP 10',
-        ticker: '🏆 ▶ RÉCORDS TOP 10 — Tabla de líderes y premios de Heladería Las Malvinas',
+        ticker: '🏆 ▶ RÉCORDS TOP 10 — Ranking semanal: cargá tus puntos y ganá increíbles premios por jugar',
         action: () => {
           if (soundEnabled && typeof SFX !== 'undefined' && SFX.blip) SFX.blip();
           renderRanking();
@@ -542,11 +712,147 @@
       }
     });
 
+    // Navegación fluida por teclado para el Modal de Fin de Partida / Registro
+    function handleRegisterModalKeys(e) {
+      const nameInput = document.getElementById('playerName');
+      const contactInput = document.getElementById('playerContact');
+      const btnRestart = document.getElementById('closeRegisterBtn');
+      const btnSave = document.getElementById('btnSaveScore');
+      const btnHome = document.getElementById('btnEndHome');
+
+      const isInput = (document.activeElement && document.activeElement.tagName === 'INPUT');
+      const activeEl = document.activeElement;
+
+      // ESCAPE -> Reiniciar partida rápido
+      if (e.key === 'Escape' || e.code === 'Escape') {
+        e.preventDefault();
+        restartFullGame();
+        return;
+      }
+
+      // FLECHA ABAJO / S (solo cuando no escribe en input de texto)
+      if (e.key === 'ArrowDown' || (!isInput && e.code === 'KeyS')) {
+        e.preventDefault();
+        if (activeEl === nameInput) {
+          if (contactInput) contactInput.focus();
+        } else if (activeEl === contactInput) {
+          if (btnRestart) btnRestart.focus();
+        } else if ([btnRestart, btnSave, btnHome].includes(activeEl)) {
+          if (nameInput) nameInput.focus();
+        } else {
+          if (nameInput) nameInput.focus();
+        }
+        if (soundEnabled && typeof SFX !== 'undefined' && SFX.cursor) SFX.cursor();
+        return;
+      }
+
+      // FLECHA ARRIBA / W (solo cuando no escribe en input de texto)
+      if (e.key === 'ArrowUp' || (!isInput && e.code === 'KeyW')) {
+        e.preventDefault();
+        if (activeEl === nameInput) {
+          if (btnRestart) btnRestart.focus();
+        } else if (activeEl === contactInput) {
+          if (nameInput) nameInput.focus();
+        } else if ([btnRestart, btnSave, btnHome].includes(activeEl)) {
+          if (contactInput) contactInput.focus();
+        } else {
+          if (contactInput) contactInput.focus();
+        }
+        if (soundEnabled && typeof SFX !== 'undefined' && SFX.cursor) SFX.cursor();
+        return;
+      }
+
+      // FLECHA DERECHA / D (solo cuando no está en input, cambia entre botones)
+      if (!isInput && (e.key === 'ArrowRight' || e.code === 'KeyD')) {
+        e.preventDefault();
+        if (activeEl === btnRestart) {
+          if (btnSave) btnSave.focus();
+        } else if (activeEl === btnSave) {
+          if (btnHome) btnHome.focus();
+        } else if (activeEl === btnHome) {
+          if (btnRestart) btnRestart.focus();
+        } else {
+          if (btnRestart) btnRestart.focus();
+        }
+        if (soundEnabled && typeof SFX !== 'undefined' && SFX.cursor) SFX.cursor();
+        return;
+      }
+
+      // FLECHA IZQUIERDA / A (solo cuando no está en input, cambia entre botones)
+      if (!isInput && (e.key === 'ArrowLeft' || e.code === 'KeyA')) {
+        e.preventDefault();
+        if (activeEl === btnRestart) {
+          if (btnHome) btnHome.focus();
+        } else if (activeEl === btnSave) {
+          if (btnRestart) btnRestart.focus();
+        } else if (activeEl === btnHome) {
+          if (btnSave) btnSave.focus();
+        } else {
+          if (btnRestart) btnRestart.focus();
+        }
+        if (soundEnabled && typeof SFX !== 'undefined' && SFX.cursor) SFX.cursor();
+        return;
+      }
+
+      // ENTER
+      if (e.key === 'Enter' || e.code === 'Enter') {
+        if (activeEl === nameInput) {
+          e.preventDefault();
+          if (contactInput) contactInput.focus();
+          if (soundEnabled && typeof SFX !== 'undefined' && SFX.select) SFX.select();
+          return;
+        }
+        if (activeEl === contactInput) {
+          e.preventDefault();
+          const nameVal = nameInput ? nameInput.value.trim() : '';
+          const contactVal = contactInput ? contactInput.value.trim() : '';
+          if (nameVal && contactVal) {
+            if (btnSave) btnSave.click();
+          } else if (!nameVal && nameInput) {
+            nameInput.focus();
+          } else if (btnSave) {
+            btnSave.focus();
+          }
+          if (soundEnabled && typeof SFX !== 'undefined' && SFX.select) SFX.select();
+          return;
+        }
+        if (activeEl === btnRestart) {
+          e.preventDefault();
+          restartFullGame();
+          return;
+        }
+        if (activeEl === btnHome) {
+          e.preventDefault();
+          if (registerModal) registerModal.classList.remove('active');
+          showArcadeScreen('title');
+          return;
+        }
+        if (activeEl === btnSave) {
+          return;
+        }
+        e.preventDefault();
+        if (btnRestart) btnRestart.click();
+        return;
+      }
+    }
+
     // Control por Teclado: Flechas, WASD, Enter, Espacio y Escape
     window.addEventListener('keydown', (e) => {
-      // 1. Si hay un modal abierto, la tecla ESC o Enter lo cierra
+      // 1. Si hay un modal abierto
       const activeModal = document.querySelector('.modal-overlay.active');
       if (activeModal) {
+        if (activeModal.id === 'pauseModal') {
+          if (e.key === 'Escape' || e.code === 'Escape' || e.code === 'KeyP' || e.key === 'Enter' || e.code === 'Enter') {
+            e.preventDefault();
+            resumeGame();
+          }
+          return;
+        }
+        if (activeModal.id === 'registerModal') {
+          handleRegisterModalKeys(e);
+          return;
+        }
+
         if (e.key === 'Escape' || e.code === 'Escape') {
           e.preventDefault();
           activeModal.classList.remove('active');
@@ -555,14 +861,23 @@
           return;
         }
         if ((e.key === 'Enter' || e.code === 'Enter') && document.activeElement && document.activeElement.tagName !== 'INPUT') {
-          const closeBtn = activeModal.querySelector('#closeRankingBtn, #closeConfigBtn, #btnCloseQrModal, #closeAdminBtn');
-          if (closeBtn && (document.activeElement === document.body || document.activeElement.classList.contains('modal-box'))) {
+          const closeBtn = activeModal.querySelector('#closeRankingBtn, #closeConfigBtn, #btnCloseQrModal, #closeAdminBtn, #closeRegisterBtn');
+          if (closeBtn) {
             e.preventDefault();
             closeBtn.click();
             return;
           }
         }
         return; // No procesar navegación del menú si hay un modal abierto
+      }
+
+      // 1.5 Si estamos jugando, ESC o P pausa la partida
+      if (arcadeGameScreen && arcadeGameScreen.style.display !== 'none' && typeof gameState !== 'undefined' && gameState === 'PLAYING') {
+        if (e.key === 'Escape' || e.code === 'Escape' || e.code === 'KeyP') {
+          e.preventDefault();
+          pauseGame();
+          return;
+        }
       }
 
       // 2. Si estamos en la pantalla de inicio (arcadeTitleScreen)
@@ -641,11 +956,12 @@
       });
     }
 
-    // SELECTOR DE NIVEL EN MODAL
+    // SELECTOR DE NIVEL EN MODAL (APLICA PANTALLA COMPLETA A TODOS LOS NIVELES)
     document.querySelectorAll('.btnPlayLevel').forEach(btn => {
       btn.addEventListener('click', () => {
         const lvl = parseInt(btn.getAttribute('data-level'), 10) || 1;
         if (configModal) configModal.classList.remove('active');
+        ensureFullscreen();
         startOfficialGame(lvl);
       });
     });
@@ -664,7 +980,11 @@
     document.querySelectorAll('.modal-overlay').forEach(modal => {
       modal.addEventListener('click', (e) => {
         if (e.target === modal) {
-          modal.classList.remove('active');
+          if (modal.id === 'pauseModal') {
+            resumeGame();
+          } else {
+            modal.classList.remove('active');
+          }
         }
       });
     });
@@ -699,19 +1019,7 @@
     }
 
     async function attemptLockLandscape() {
-      try {
-        const target = document.getElementById('arcadeStage') || document.documentElement;
-        if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-          if (target.requestFullscreen) {
-            await target.requestFullscreen().catch(() => {});
-          } else if (target.webkitRequestFullscreen) {
-            target.webkitRequestFullscreen();
-          }
-        }
-        if (screen.orientation && screen.orientation.lock) {
-          await screen.orientation.lock('landscape').catch(() => {});
-        }
-      } catch (e) {}
+      await ensureFullscreen();
     }
 
     if (btnLockLandscape) {

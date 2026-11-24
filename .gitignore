@@ -3,4 +3,9 @@
 *.log
 .DS_Store
 Thumbs.db
-propuestas_cliente
+
+# Material privado y propuestas comerciales para el cliente (no subir a Git)
+Material_Cliente/
+Propuestas_Cliente/
+propuestas_cliente/
+Documentacion_y_Estrategia/

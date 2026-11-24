@@ -61,43 +61,21 @@ const CONFIG_NIVELES = {
   }
 };
 
-// 3. TABLA DE PREMIOS Y CUPONES DE DESCUENTO
-// Ajustá los puntos mínimos y códigos de cupón según tus promociones:
-const CONFIG_CUPONES = [
-  {
-    minScore: 2000,
-    badge: '🌟 ¡MÁXIMO PREMIO: 20% OFF + ENTRADA AL SORTEO!',
-    codigo: 'MALVINAS-20VIP-1KG',
-    descripcion: '¡20% OFF en Heladería Las Malvinas y participás automáticamente por el 1 KG Semanal!'
-  },
-  {
-    minScore: 1500,
-    badge: '🎁 ¡CUPÓN GANADO: 15% OFF!',
-    codigo: 'MALVINAS-15OFF',
-    descripcion: 'Presentá este cupón en el mostrador para obtener un 15% de descuento.'
-  },
-  {
-    minScore: 1000,
-    badge: '🎁 ¡CUPÓN GANADO: 10% OFF!',
-    codigo: 'MALVINAS-10OFF',
-    descripcion: 'Presentá este cupón en el mostrador para obtener un 10% de descuento.'
-  },
-  {
-    minScore: 500,
-    badge: '🎁 ¡CUPÓN GANADO: 5% OFF!',
-    codigo: 'MALVINAS-5OFF',
-    descripcion: 'Presentá este cupón en el mostrador para obtener un 5% de descuento.'
-  }
-];
+// 3. MENSAJE DE FIN DE PARTIDA (CARGA DE PUNTOS SEMANALES)
+const CONFIG_MENSAJE_FIN_PARTIDA = {
+  titulo: '🏆 ¡CARGÁ TUS PUNTOS SEMANALES!',
+  descripcion: 'Podés cargar tus puntos de la semana para participar y ganar increíbles premios solo por jugar.'
+};
 
 // 4. AJUSTES DEL PERSONAJE (ANALÍA)
 const CONFIG_JUGADOR = {
   vidasIniciales: 3,
-  velocidadMovimiento: 4.8,
-  fuerzaSalto: -12.5,
-  gravedad: 0.55,
-  cooldownDisparo: 18,       // Frecuencia de disparo de bolas de helado
-  duracionSuperPoder: 600    // Duración de Súper Modo (en cuadros de juego)
+  velocidadMovimiento: 4.0,
+  fuerzaSalto: -10.8,
+  gravedad: 0.48,
+  cooldownDisparo: 12,       // Pausa mínima en modo normal (1 copo por vez, más ágil)
+  duracionSuperPoder: 360,   // Duración corta de Súper Modo 1KG (~6 segundos a 60 FPS)
+  tirosSuperPoder: 4         // Máximo de ráfagas locas permitidas por cada Pote de 1KG
 };
 
 // 5. PUNTOS POR ACCIÓN
@@ -110,9 +88,10 @@ const CONFIG_PUNTOS = {
 
 // 6. ENEMIGOS Y JEFE FINAL
 const CONFIG_ENEMIGOS = {
-  vidaBoss: 3,               // Golpes necesarios para vencer al Boss del Nivel 3
-  velocidadSolcito: 1.4,
-  velocidadLlama: 2.0
+  vidaEnemigo: 3,            // Golpes de copos de nieve necesarios para congelar a cada Solcito/Llamita
+  vidaBoss: 12,              // Vida del Jefe Final del Nivel 3 (cabeza: -2/-3, costados blindados: mínimo daño)
+  velocidadSolcito: 1.1,
+  velocidadLlama: 1.5
 };
 
 // 7. RANKING POR DEFECTO
@@ -149,10 +128,9 @@ const CONFIG_MUSICA = {
 const CONFIG_CARTEL_QR = {
   titulo: 'HELADERÍA LAS MALVINAS',
   subtitulo: '¡JUGÁ MIENTRAS DISFRUTÁS TU HELADO!',
-  instrucciones: 'Escaneá con la cámara de tu celular y jugá gratis sin descargar nada:',
-  promo1: '500 pts ➔ 5% OFF',
-  promo2: '1.000 pts ➔ 10% OFF',
-  promo3: '1.500 pts ➔ 15% OFF',
-  promo4: '2.000 pts ➔ 20% OFF + Sorteo de 1 KG Semanal',
+  instrucciones: 'Escaneá con la cámara de tu celular, jugá y cargá tus puntos semanales:',
+  promo1: '🎮 Jugá gratis desde tu celular',
+  promo2: '📊 Cargá tus puntos en el ranking semanal',
+  promo3: '🏆 ¡Ganá increíbles premios solo por jugar!',
   pie: '📍 Heladería Las Malvinas — La Rioja, Argentina'
 };

@@ -291,6 +291,73 @@
       logoMalvinasImg.src = DEFAULT_LOGO_B64;
     };
 
+    /**************************************************************
+     * FUNCIÓN PARA GENERAR FONDOS HORIZONTALMENTE CONTINUOS (SEAMLESS)
+     * Elimina el corte/salto visible cuando el fondo se repite en scroll
+     **************************************************************/
+    function makeSeamless(img, blendWidth = 220) {
+      const w = img.naturalWidth || img.width;
+      const h = img.naturalHeight || img.height;
+      if (!w || !h) return img;
+      const bw = Math.min(blendWidth, Math.floor(w * 0.25));
+      const outW = w - bw;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = outW;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+
+      // 1. Dibujar la imagen base completa en el lienzo de ancho outW
+      ctx.drawImage(img, 0, 0);
+
+      // 2. Extraer la tira del extremo derecho [w - bw, w] y aplicarle máscara con gradiente lineal de opacidad (1 a 0)
+      const strip = document.createElement('canvas');
+      strip.width = bw;
+      strip.height = h;
+      const sctx = strip.getContext('2d');
+      sctx.drawImage(img, w - bw, 0, bw, h, 0, 0, bw, h);
+      sctx.globalCompositeOperation = 'destination-in';
+      const grad = sctx.createLinearGradient(0, 0, bw, 0);
+      grad.addColorStop(0, 'rgba(0,0,0,1)');
+      grad.addColorStop(1, 'rgba(0,0,0,0)');
+      sctx.fillStyle = grad;
+      sctx.fillRect(0, 0, bw, h);
+
+      // 3. Fundir la tira sobre el borde izquierdo [0, bw] para que el inicio y el final de la imagen coincidan exactamente
+      ctx.drawImage(strip, 0, 0);
+
+      return canvas;
+    }
+
+    /**************************************************************
+     * FONDOS OFICIALES PIXEL ART: NIVELES 1 Y 2
+     **************************************************************/
+    const bgDiqueSauces = new Image();
+    bgDiqueSauces.src = "fondo_dique_los_sauces.jpg";
+    let bgDiqueSaucesLoaded = false;
+    let bgDiqueSaucesSeamless = null;
+    bgDiqueSauces.onload = () => {
+      bgDiqueSaucesLoaded = true;
+      try {
+        bgDiqueSaucesSeamless = makeSeamless(bgDiqueSauces, 220);
+      } catch (e) {
+        console.warn('Seamless fallback Dique:', e);
+      }
+    };
+
+    const bgParqueCiudad = new Image();
+    bgParqueCiudad.src = "fondo_parque_de_la_ciudad.jpg";
+    let bgParqueCiudadLoaded = false;
+    let bgParqueCiudadSeamless = null;
+    bgParqueCiudad.onload = () => {
+      bgParqueCiudadLoaded = true;
+      try {
+        bgParqueCiudadSeamless = makeSeamless(bgParqueCiudad, 220);
+      } catch (e) {
+        console.warn('Seamless fallback Parque:', e);
+      }
+    };
+
     let useHdSprite = true;
     let customPlayerImg = defaultMaestraImg;
     const spriteUpload = document.getElementById('spriteUpload');
@@ -353,7 +420,7 @@
       // Estado 4: Corriendo en el piso (Ciclo de carrera de 2 pasos)
       const isMoving = Math.abs(player.vx) > 0.25;
       if (isMoving && player.grounded) {
-        const step = Math.floor(frameCount / 7) % 2;
+        const step = Math.floor(frameCount / 8) % 2;
         if (step === 0 && analiaSprites.loaded.run1) return analiaSprites.run1;
         if (step === 1 && analiaSprites.loaded.run2) return analiaSprites.run2;
         if (analiaSprites.loaded.run1) return analiaSprites.run1;
@@ -402,6 +469,13 @@
      **************************************************************/
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
+    const GAME_W = 800;
+    const GAME_H = 450;
+    const IS_MOBILE_RENDER = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (window.innerWidth <= 960 && window.innerHeight <= 520);
+    // PC: Full HD (1920x1080) | Celular: 1400x788 (súper nítido en pantalla chica y fluido a 60 FPS)
+    const RENDER_SCALE = IS_MOBILE_RENDER ? 1.75 : 2.4;
+    canvas.width = Math.round(GAME_W * RENDER_SCALE);
+    canvas.height = Math.round(GAME_H * RENDER_SCALE);
 
     // Fuentes Retro Pixel Art para el Canvas
     const PIXEL_FONT = "'Press Start 2P', monospace";
@@ -437,12 +511,13 @@
       h: 44,
       vx: 0,
       vy: 0,
-      speed: 4.3,
-      jumpPower: -11.6,
+      speed: (typeof CONFIG_JUGADOR !== 'undefined' && CONFIG_JUGADOR.velocidadMovimiento) ? CONFIG_JUGADOR.velocidadMovimiento : 4.0,
+      jumpPower: (typeof CONFIG_JUGADOR !== 'undefined' && CONFIG_JUGADOR.fuerzaSalto) ? CONFIG_JUGADOR.fuerzaSalto : -10.8,
       grounded: false,
       facing: 1,
       superMode: false,
       superTimer: 0,
+      superShotsLeft: 0,
       invincibleTimer: 0,
       shootCooldown: 0
     };
@@ -470,55 +545,72 @@
       player.vy = 0;
 
       if (lvl === 1) {
-        // NIVEL 1: Dique Los Sauces & Mostrador Heladero (Sabor 1: Frutilla a la Reina)
-        addFloatingText('🍓 ¡NIVEL 1: Recuperá Frutilla a la Reina!', 90, 210, '#f472b6');
+        // NIVEL 1: Dique Los Sauces & Costanera (Sabor 1: Frutilla a la Reina)
+        addFloatingText('🍓 ¡NIVEL 1: Dique Los Sauces! Recuperá Frutilla a la Reina', 90, 210, '#f472b6');
         addFloatingText('❄️ Presioná [TIRO] o tecla X para disparar el Poder Malvi', 90, 235, '#67e8f9');
 
-        // Suelo de Mostrador con saltos estilo Mario
+        // Costanera de piedra del Dique Los Sauces con saltos estilo Mario (recorrido extendido)
         platforms.push({ x: 0, y: 380, w: 920, h: 70, type: 'ground' });
         platforms.push({ x: 1020, y: 380, w: 760, h: 70, type: 'ground' });
-        platforms.push({ x: 1880, y: 380, w: 850, h: 70, type: 'ground' });
+        platforms.push({ x: 1880, y: 380, w: 900, h: 70, type: 'ground' });
+        platforms.push({ x: 2880, y: 380, w: 870, h: 70, type: 'ground' });
 
-        // Tubos Helados (Tachos blancos de helado con logo Las Malvinas)
+        // Piedras y rocas naturales de montaña (Dique Los Sauces)
         platforms.push({ x: 420, y: 310, w: 54, h: 70, type: 'pipe' });
         platforms.push({ x: 760, y: 290, w: 54, h: 90, type: 'pipe' });
         platforms.push({ x: 1580, y: 300, w: 54, h: 80, type: 'pipe' });
+        platforms.push({ x: 2390, y: 300, w: 54, h: 80, type: 'pipe' }); // Roca para subir y volverse hacia el rectángulo alto
 
         // Plataformas de ladrillos
-        platforms.push({ x: 220, y: 270, w: 40, h: 36, type: 'brick' });
-        platforms.push({ x: 300, y: 270, w: 40, h: 36, type: 'brick' });
-        platforms.push({ x: 560, y: 250, w: 120, h: 32, type: 'brick' });
-        platforms.push({ x: 1120, y: 265, w: 120, h: 32, type: 'brick' });
-        platforms.push({ x: 1320, y: 185, w: 140, h: 32, type: 'brick' });
-        platforms.push({ x: 1960, y: 290, w: 110, h: 32, type: 'brick' });
-        platforms.push({ x: 2100, y: 230, w: 110, h: 32, type: 'brick' });
+        platforms.push({ x: 220, y: 275, w: 40, h: 36, type: 'brick' });
+        platforms.push({ x: 300, y: 275, w: 40, h: 36, type: 'brick' });
+        platforms.push({ x: 560, y: 268, w: 120, h: 32, type: 'brick' });
+        platforms.push({ x: 1120, y: 270, w: 120, h: 32, type: 'brick' });
+        platforms.push({ x: 1320, y: 195, w: 140, h: 32, type: 'brick' });
 
-        // Bloques [?] Misteriosos (Heladeras Sorpresa)
-        mysteryBlocks.push({ x: 260, y: 270, w: 40, h: 36, used: false, reward: 'powerup', bounce: 0 });
-        mysteryBlocks.push({ x: 600, y: 155, w: 40, h: 36, used: false, reward: 'cone', bounce: 0 });
+        // Zona de retorno: rectángulo alto (x: 2010) inaccesible de izquierda a derecha;
+        // hay que avanzar a la roca (x: 2390), subir al escalón (x: 2235) y volverse hacia la izquierda
+        platforms.push({ x: 2010, y: 175, w: 180, h: 32, type: 'brick' });
+        platforms.push({ x: 2235, y: 235, w: 110, h: 32, type: 'brick' });
+
+        // Tramo final extendido hacia la meta
+        platforms.push({ x: 2560, y: 270, w: 120, h: 32, type: 'brick' });
+        platforms.push({ x: 2970, y: 285, w: 110, h: 32, type: 'brick' });
+        platforms.push({ x: 3110, y: 220, w: 110, h: 32, type: 'brick' });
+
+        // Bloques [?] Misteriosos (Heladeras Sorpresa — cada uno lanza un premio visible)
+        mysteryBlocks.push({ x: 260, y: 275, w: 40, h: 36, used: false, reward: 'powerup', bounce: 0 });
+        mysteryBlocks.push({ x: 600, y: 165, w: 40, h: 36, used: false, reward: 'cone', bounce: 0 });
         mysteryBlocks.push({ x: 1160, y: 165, w: 40, h: 36, used: false, reward: 'powerup', bounce: 0 });
-        mysteryBlocks.push({ x: 1690, y: 265, w: 40, h: 36, used: false, reward: 'cone', bounce: 0 });
+        mysteryBlocks.push({ x: 1680, y: 275, w: 40, h: 36, used: false, reward: 'cone', dropDir: -1, bounce: 0 });
+        mysteryBlocks.push({ x: 2080, y: 74, w: 40, h: 36, used: false, reward: 'powerup', bounce: 0 }); // Premio secreto del rectángulo alto
+        mysteryBlocks.push({ x: 3145, y: 120, w: 40, h: 36, used: false, reward: 'cone', bounce: 0 });
 
-        // Cucuruchos recolectables
+        // Cucuruchos recolectables (alineados con cada plataforma y bloque)
         const conePositions = [
-          [180, 330], [260, 220], [340, 330], [580, 205], [630, 205],
-          [850, 330], [960, 260], [1140, 220], [1200, 220], [1350, 140], [1410, 140],
-          [1510, 330], [1990, 240], [2130, 180], [2260, 330]
+          [180, 330], [280, 228], [345, 330], [580, 224], [660, 224],
+          [850, 330], [970, 265], [1140, 226], [1220, 226], [1355, 150], [1425, 150],
+          [1510, 330], [2040, 132], [2160, 132], [2290, 192],
+          [2590, 226], [2650, 226], [2830, 265], [3025, 242], [3128, 178], [3202, 178], [3300, 330]
         ];
         conePositions.forEach(([cx, cy]) => cones.push({ x: cx, y: cy, r: 14, collected: false }));
+        // Helado Secreto Oculto (+800 pts): bien arriba del bloque [?] del rectángulo alto (solo al subirse encima y saltar)
+        cones.push({ x: 2100, y: -38, r: 16, collected: false, hidden: true, secret: true, points: 800 });
 
         // Enemigos: Solcitos de Calor Riojano (45°C)
-        enemies.push({ x: 520, y: 344, w: 36, h: 36, vx: 1.4, minX: 485, maxX: 740, alive: true, type: 'sun' });
-        enemies.push({ x: 1150, y: 344, w: 36, h: 36, vx: -1.6, minX: 1030, maxX: 1550, alive: true, type: 'sun' });
-        enemies.push({ x: 1420, y: 344, w: 36, h: 36, vx: 1.7, minX: 1030, maxX: 1550, alive: true, type: 'sun' });
-        enemies.push({ x: 2020, y: 344, w: 36, h: 36, vx: -1.8, minX: 1900, maxX: 2350, alive: true, type: 'sun' });
+        enemies.push({ x: 520, y: 344, w: 36, h: 36, vx: 1.2, minX: 485, maxX: 740, alive: true, type: 'sun' });
+        enemies.push({ x: 1150, y: 344, w: 36, h: 36, vx: -1.4, minX: 1030, maxX: 1550, alive: true, type: 'sun' });
+        enemies.push({ x: 1420, y: 344, w: 36, h: 36, vx: 1.45, minX: 1030, maxX: 1550, alive: true, type: 'sun' });
+        enemies.push({ x: 2080, y: 344, w: 36, h: 36, vx: -1.4, minX: 1920, maxX: 2360, alive: true, type: 'sun' });
+        enemies.push({ x: 2550, y: 344, w: 36, h: 36, vx: 1.5, minX: 2460, maxX: 2740, alive: true, type: 'sun' });
+        enemies.push({ x: 3040, y: 344, w: 36, h: 36, vx: -1.55, minX: 2910, maxX: 3340, alive: true, type: 'sun' });
 
         boss = null;
         bossProjectiles = [];
-        goalFlag = { x: 2450, y: 120, w: 16, h: 260, reached: false };
+        goalFlag = { x: 3450, y: 120, w: 16, h: 260, reached: false };
       } else if (lvl === 2) {
-        // NIVEL 2: Parque de la Ciudad (Sabor 2: Dulce de Leche Granizado)
-        addFloatingText('🍮 ¡NIVEL 2: Recuperá Dulce de Leche Granizado!', 90, 210, '#facc15');
+        // NIVEL 2: Parque de la Ciudad & Superdomo (Sabor 2: Dulce de Leche Granizado)
+        addFloatingText('🍮 ¡NIVEL 2: Parque de la Ciudad! Recuperá Dulce de Leche', 90, 210, '#facc15');
 
         platforms.push({ x: 0, y: 380, w: 680, h: 70, type: 'ground' });
         platforms.push({ x: 800, y: 380, w: 650, h: 70, type: 'ground' });
@@ -545,24 +637,24 @@
         ];
         conePositions2.forEach(([cx, cy]) => cones.push({ x: cx, y: cy, r: 14, collected: false }));
 
-        enemies.push({ x: 450, y: 344, w: 36, h: 36, vx: 2.0, minX: 415, maxX: 640, alive: true, type: 'flame' });
-        enemies.push({ x: 920, y: 344, w: 36, h: 36, vx: -2.2, minX: 815, maxX: 1410, alive: true, type: 'sun' });
-        enemies.push({ x: 1280, y: 344, w: 36, h: 36, vx: 2.3, minX: 815, maxX: 1410, alive: true, type: 'flame' });
-        enemies.push({ x: 1750, y: 344, w: 36, h: 36, vx: -2.2, minX: 1600, maxX: 2320, alive: true, type: 'sun' });
-        enemies.push({ x: 2150, y: 344, w: 36, h: 36, vx: 2.4, minX: 1600, maxX: 2320, alive: true, type: 'flame' });
+        enemies.push({ x: 450, y: 344, w: 36, h: 36, vx: 1.7, minX: 415, maxX: 640, alive: true, type: 'flame' });
+        enemies.push({ x: 920, y: 344, w: 36, h: 36, vx: -1.9, minX: 815, maxX: 1410, alive: true, type: 'sun' });
+        enemies.push({ x: 1280, y: 344, w: 36, h: 36, vx: 2.0, minX: 815, maxX: 1410, alive: true, type: 'flame' });
+        enemies.push({ x: 1750, y: 344, w: 36, h: 36, vx: -1.9, minX: 1600, maxX: 2320, alive: true, type: 'sun' });
+        enemies.push({ x: 2150, y: 344, w: 36, h: 36, vx: 2.1, minX: 1600, maxX: 2320, alive: true, type: 'flame' });
 
         boss = null;
         bossProjectiles = [];
         goalFlag = { x: 2450, y: 120, w: 16, h: 260, reached: false };
       } else {
         // NIVEL 3: Microcentro Riojano (Sabor 3: Chocolate Malvinas & Boss Fight)
-        addFloatingText('🍫 ¡NIVEL 3: Microcentro Riojano! Vencé al Robot', 90, 210, '#facc15');
+        addFloatingText('🍫 ¡NIVEL 3: Microcentro! Saltá y pegale EN LA CABEZA al Robot', 90, 210, '#facc15');
 
+        // Suelo inicial + tramo final 100% PLANO Y SIN POZOS para la batalla con el Robot
         platforms.push({ x: 0, y: 380, w: 750, h: 70, type: 'ground' });
-        platforms.push({ x: 880, y: 380, w: 720, h: 70, type: 'ground' });
-        platforms.push({ x: 1720, y: 380, w: 900, h: 70, type: 'ground' }); // Arena del Boss
+        platforms.push({ x: 880, y: 380, w: 2420, h: 70, type: 'ground' }); // Todo plano hasta la meta, imposible caerse!
 
-        // Tachos helados y marquesinas
+        // Tachos helados y marquesinas del recorrido previo
         platforms.push({ x: 380, y: 300, w: 54, h: 80, type: 'pipe' });
         platforms.push({ x: 580, y: 250, w: 130, h: 30, type: 'brick' });
         platforms.push({ x: 760, y: 220, w: 100, h: 26, type: 'ice' });
@@ -570,42 +662,67 @@
         platforms.push({ x: 1240, y: 195, w: 150, h: 30, type: 'brick' });
         platforms.push({ x: 1460, y: 280, w: 120, h: 30, type: 'brick' });
 
+        // Rectángulos tácticos a lo largo de toda la arena plana (el Robot retrocede por debajo)
+        platforms.push({ x: 1740, y: 266, w: 110, h: 18, type: 'brick' });
+        platforms.push({ x: 1900, y: 186, w: 120, h: 20, type: 'ice' });
+        platforms.push({ x: 2140, y: 266, w: 110, h: 18, type: 'brick' });
+        platforms.push({ x: 2300, y: 186, w: 120, h: 20, type: 'ice' });
+        platforms.push({ x: 2540, y: 266, w: 110, h: 18, type: 'brick' });
+        platforms.push({ x: 2700, y: 186, w: 120, h: 20, type: 'ice' });
+
         // Bloques [?] Misteriosos
         mysteryBlocks.push({ x: 260, y: 265, w: 40, h: 36, used: false, reward: 'powerup', bounce: 0 });
         mysteryBlocks.push({ x: 1080, y: 165, w: 40, h: 36, used: false, reward: 'cone', bounce: 0 });
         mysteryBlocks.push({ x: 1500, y: 180, w: 40, h: 36, used: false, reward: 'powerup', bounce: 0 });
+        mysteryBlocks.push({ x: 2340, y: 92, w: 40, h: 36, used: false, reward: 'powerup', bounce: 0 }); // Súper 1KG en la arena
 
         // Cucuruchos
         const conePositions3 = [
           [200, 330], [260, 215], [600, 200], [660, 200], [790, 170],
           [950, 330], [1050, 220], [1280, 150], [1340, 150], [1520, 230],
-          [1800, 330], [1860, 330]
+          [1795, 224], [1960, 144], [2195, 224], [2360, 144], [2595, 224], [2760, 144]
         ];
         conePositions3.forEach(([cx, cy]) => cones.push({ x: cx, y: cy, r: 14, collected: false }));
 
         // Enemigos previos al Boss
-        enemies.push({ x: 500, y: 344, w: 36, h: 36, vx: 2.1, minX: 440, maxX: 700, alive: true, type: 'sun' });
-        enemies.push({ x: 1100, y: 344, w: 36, h: 36, vx: -2.3, minX: 920, maxX: 1500, alive: true, type: 'flame' });
-        enemies.push({ x: 1350, y: 344, w: 36, h: 36, vx: 2.2, minX: 920, maxX: 1500, alive: true, type: 'sun' });
+        enemies.push({ x: 500, y: 344, w: 36, h: 36, vx: 1.8, minX: 440, maxX: 700, alive: true, type: 'sun' });
+        enemies.push({ x: 1100, y: 344, w: 36, h: 36, vx: -2.0, minX: 920, maxX: 1500, alive: true, type: 'flame' });
+        enemies.push({ x: 1350, y: 344, w: 36, h: 36, vx: 1.9, minX: 920, maxX: 1500, alive: true, type: 'sun' });
 
-        // BOSS FINAL: Maestro Heladero Industrial (3 HP)
+        // BOSS FINAL: Maestro Heladero Industrial (Arena plana, retrocede al pelear, punto débil en CABEZA)
+        const bossHp = (typeof CONFIG_ENEMIGOS !== 'undefined' && CONFIG_ENEMIGOS.vidaBoss) ? CONFIG_ENEMIGOS.vidaBoss : 12;
         boss = {
-          x: 2150,
-          y: 270,
-          w: 75,
-          h: 110,
-          vx: -1.3,
-          minX: 1940,
-          maxX: 2360,
-          hp: 3,
-          maxHp: 3,
+          x: 1960,
+          y: 286,
+          baseY: 286,
+          w: 78,
+          h: 94,
+          vx: 1.75,
+          vy: 0,
+          minX: 1820,
+          maxX: 2860,
+          arenaMaxX: 2860,
+          hp: bossHp,
+          maxHp: bossHp,
           alive: true,
           hitTimer: 0,
-          shootTimer: 0
+          retreatTimer: 0,
+          shootTimer: 50,
+          jumpTimer: 90,
+          sideHits: 0,
+          enraged: false
         };
         bossProjectiles = [];
 
-        goalFlag = { x: 2500, y: 120, w: 16, h: 260, reached: false };
+        goalFlag = { x: 2980, y: 120, w: 16, h: 260, reached: false };
+      }
+
+      // Asignar vida a todos los enemigos (3 golpes de copos de nieve para congelarlos)
+      const enemyHp = (typeof CONFIG_ENEMIGOS !== 'undefined' && CONFIG_ENEMIGOS.vidaEnemigo) ? CONFIG_ENEMIGOS.vidaEnemigo : 3;
+      for (const en of enemies) {
+        en.hp = enemyHp;
+        en.maxHp = enemyHp;
+        en.hitTimer = 0;
       }
 
       updateHud();
@@ -616,7 +733,7 @@
     }
 
     function updateHud() {
-      let lvlName = 'NIVEL 1: DIQUE & LOCAL';
+      let lvlName = 'NIVEL 1: DIQUE LOS SAUCES';
       if (currentLevel === 2) lvlName = 'NIVEL 2: PARQUE DE LA CIUDAD';
       if (currentLevel === 3) lvlName = 'NIVEL 3: MICROCENTRO (BOSS)';
       document.getElementById('hudLevel').textContent = lvlName;
@@ -624,7 +741,7 @@
       document.getElementById('hudCones').textContent = `🍦 x${conesCollected}`;
       if (player.superMode) {
         const secLeft = Math.max(1, Math.ceil(player.superTimer / 60));
-        document.getElementById('hudPower').textContent = `⭐ SÚPER 1KG (${secLeft}s)`;
+        document.getElementById('hudPower').textContent = `⭐ SÚPER 1KG (${player.superShotsLeft}❄️ • ${secLeft}s)`;
       } else {
         document.getElementById('hudPower').textContent = '❄️ PODER MALVI';
       }
@@ -637,37 +754,48 @@
     }
 
     function shootIceBall() {
-      if (player.shootCooldown > 0 || gameState !== 'PLAYING') return;
+      const isSuper = player.superMode && player.superShotsLeft > 0;
+      // Modo normal: 1 copo de nieve por vez. Súper Modo 1KG: hasta 4 ráfagas locas en poco tiempo!
+      if (player.shootCooldown > 0 || (!isSuper && iceBalls.length >= 1) || gameState !== 'PLAYING') return;
       SFX.shoot();
-      const isSuper = player.superMode;
-      player.shootCooldown = isSuper ? 9 : 14;
+      const normalCooldown = (typeof CONFIG_JUGADOR !== 'undefined' && CONFIG_JUGADOR.cooldownDisparo) ? CONFIG_JUGADOR.cooldownDisparo : 12;
+      player.shootCooldown = isSuper ? 10 : normalCooldown;
 
-      // Copo de nieve principal
+      // Copo de nieve principal (mismo daño en ambos modos, más veloz)
       iceBalls.push({
         x: player.facing === 1 ? player.x + player.w : player.x - 14,
         y: player.y + 16,
-        vx: player.facing * (isSuper ? 10.2 : 8.0),
+        vx: player.facing * (isSuper ? 10.2 : 8.8),
         vy: -1.2,
-        r: isSuper ? 11 : 8,
+        r: isSuper ? 10.5 : 8.5,
         angle: 0,
-        rotSpeed: (player.facing || 1) * (isSuper ? 0.28 : 0.20),
+        rotSpeed: (player.facing || 1) * (isSuper ? 0.26 : 0.22),
         isSuper: isSuper,
-        life: 105
+        life: isSuper ? 80 : 62
       });
 
-      // Disparo doble en abanico en Modo Súper 1KG
+      // En Súper Modo 1KG dispara en abanico rápido (máximo 4 tiros locos) con el mismo daño por copo
       if (isSuper) {
         iceBalls.push({
           x: player.facing === 1 ? player.x + player.w : player.x - 14,
           y: player.y + 10,
-          vx: player.facing * 9.0,
-          vy: -3.0,
+          vx: player.facing * 9.2,
+          vy: -3.2,
           r: 9.5,
           angle: 0.7,
           rotSpeed: (player.facing || 1) * -0.24,
           isSuper: true,
-          life: 95
+          life: 75
         });
+
+        player.superShotsLeft--;
+        if (player.superShotsLeft <= 0) {
+          player.superMode = false;
+          player.superTimer = 0;
+          BGM.setSuperMode(false);
+          addFloatingText('❄️ ¡4/4 Tiros Súper Usados!', player.x - 15, player.y - 16, '#94a3b8');
+        }
+        updateHud();
       }
 
       // Destellos de escarcha en las manos al disparar
@@ -675,8 +803,8 @@
         particles.push({
           x: player.facing === 1 ? player.x + player.w : player.x,
           y: player.y + 16,
-          vx: (player.facing * 2.2) + (Math.random() - 0.5) * 2,
-          vy: (Math.random() - 0.5) * 2,
+          vx: (player.facing * 2.0) + (Math.random() - 0.5) * 1.8,
+          vy: (Math.random() - 0.5) * 1.8,
           color: isSuper ? '#f472b6' : '#bae6fd',
           r: Math.random() * 2.2 + 1,
           life: 14,
@@ -690,6 +818,9 @@
       SFX.hurt();
       if (player.superMode) {
         player.superMode = false;
+        player.superTimer = 0;
+        player.superShotsLeft = 0;
+        BGM.setSuperMode(false);
         player.invincibleTimer = 70;
         addFloatingText('¡Escudo Helado!', player.x, player.y - 10, '#67e8f9');
         updateHud();
@@ -698,6 +829,7 @@
         updateHud();
         if (lives <= 0) {
           gameState = 'GAMEOVER';
+          if (typeof BGM !== 'undefined' && BGM.stop) BGM.stop();
           openEndModal(false);
         } else {
           player.invincibleTimer = 80;
@@ -717,7 +849,7 @@
         // Analía y Malvi caminan automáticamente con orgullo hacia la puerta del local
         const doorX = goalFlag.x + 130;
         if (player.x < doorX) {
-          player.vx = 2.4;
+          player.vx = 1.9;
           player.facing = 1;
           player.x += player.vx;
           player.grounded = true;
@@ -760,9 +892,10 @@
         SFX.jump();
       }
 
-      // Súper Modo: Cuenta regresiva, velocidad de música y estela dorada
+      // Súper Modo: Cuenta regresiva corta (6s / 4 tiros locos), música y estela dorada
       if (player.superMode) {
         player.superTimer--;
+        if (player.superTimer % 30 === 0) updateHud();
         // Estela mágica de estrellas y destellos dorados
         if (frameCount % 3 === 0) {
           particles.push({
@@ -770,28 +903,31 @@
             y: player.y + Math.random() * player.h,
             vx: (Math.random() - 0.5) * 1.5,
             vy: -Math.random() * 2 - 0.5,
-            size: Math.random() * 4 + 2,
+            r: Math.random() * 2.5 + 1.5,
             color: ['#facc15', '#f472b6', '#38bdf8', '#ffffff'][Math.floor(Math.random() * 4)],
-            alpha: 1,
-            life: 25
+            life: 25,
+            maxLife: 25
           });
         }
-        if (player.superTimer <= 0) {
+        if (player.superTimer <= 0 || player.superShotsLeft <= 0) {
           player.superMode = false;
+          player.superTimer = 0;
+          player.superShotsLeft = 0;
           BGM.setSuperMode(false);
           addFloatingText('Súper Modo Terminado', player.x, player.y - 10, '#94a3b8');
           updateHud();
         }
       }
 
-      // Disparo en modo Súper Helado
-      if (keys.shoot) {
+      // Disparo continuo en ráfaga ("a lo loco") únicamente durante el Súper Modo 1KG
+      if (keys.shoot && player.superMode) {
         shootIceBall();
       }
 
-      // Gravedad
-      player.vy += 0.56;
-      if (player.vy > 12) player.vy = 12;
+      // Gravedad (ajustada para ritmo de velocidad 4.0 y misma altura de salto)
+      const gravity = (typeof CONFIG_JUGADOR !== 'undefined' && CONFIG_JUGADOR.gravedad) ? CONFIG_JUGADOR.gravedad : 0.48;
+      player.vy += gravity;
+      if (player.vy > 11) player.vy = 11;
 
       // Aplicar X y colisionar
       player.x += player.vx;
@@ -809,6 +945,73 @@
       player.y += player.vy;
       player.grounded = false;
 
+      // Actualizar animación de rebote de bloques misteriosos [?]
+      for (const mb of mysteryBlocks) {
+        if (mb.bounce > 0) mb.bounce--;
+      }
+
+      // Priorizar golpe desde abajo a Bloques Misteriosos [?] antes que ladrillos vecinos
+      if (player.vy < 0) {
+        let bestMb = null;
+        let bestOverlap = 0;
+        for (const mb of mysteryBlocks) {
+          if (rectIntersect(player, mb)) {
+            const overlapX = Math.min(player.x + player.w, mb.x + mb.w) - Math.max(player.x, mb.x);
+            if (overlapX > bestOverlap) {
+              bestOverlap = overlapX;
+              bestMb = mb;
+            }
+          }
+        }
+        if (bestMb && bestOverlap >= 4) {
+          player.y = bestMb.y + bestMb.h;
+          player.vy = 1.4;
+          if (!bestMb.used) {
+            bestMb.used = true;
+            bestMb.bounce = 10;
+            const dropDir = bestMb.dropDir || 1;
+            if (bestMb.reward === 'powerup') {
+              SFX.powerup();
+              powerups.push({
+                x: bestMb.x + 4,
+                y: bestMb.y - 34,
+                w: 32,
+                h: 32,
+                vx: dropDir * 1.15,
+                vy: -3.2,
+                type: 'super1kg'
+              });
+              addFloatingText('⭐ ¡Súper Pote 1Kg!', bestMb.x - 16, bestMb.y - 24, '#f472b6');
+            } else {
+              SFX.powerup();
+              powerups.push({
+                x: bestMb.x + 6,
+                y: bestMb.y - 30,
+                w: 28,
+                h: 30,
+                vx: dropDir * 1.05,
+                vy: -4.4,
+                type: 'bonusCone'
+              });
+              addFloatingText('🍦 ¡Cucurucho Sorpresa!', bestMb.x - 24, bestMb.y - 24, '#facc15');
+            }
+            // Destellos dorados al abrir el bloque [?]
+            for (let p = 0; p < 10; p++) {
+              particles.push({
+                x: bestMb.x + bestMb.w / 2,
+                y: bestMb.y,
+                vx: (Math.random() - 0.5) * 4,
+                vy: -Math.random() * 3.5 - 1,
+                color: p % 2 === 0 ? '#facc15' : '#ffffff',
+                r: Math.random() * 2.5 + 1.2,
+                life: 20,
+                maxLife: 20
+              });
+            }
+          }
+        }
+      }
+
       for (const plat of platforms) {
         if (rectIntersect(player, plat)) {
           if (player.vy > 0) {
@@ -822,9 +1025,8 @@
         }
       }
 
-      // Bloques Misteriosos [?]
+      // Colisión superior al pisar Bloques Misteriosos [?]
       for (const mb of mysteryBlocks) {
-        if (mb.bounce > 0) mb.bounce--;
         if (rectIntersect(player, mb)) {
           if (player.vy > 0) {
             player.y = mb.y - player.h;
@@ -832,95 +1034,158 @@
             player.grounded = true;
           } else if (player.vy < 0) {
             player.y = mb.y + mb.h;
-            player.vy = 1.5;
-            if (!mb.used) {
-              mb.used = true;
-              mb.bounce = 10;
-              if (mb.reward === 'powerup') {
-                SFX.powerup();
-                powerups.push({ x: mb.x + 4, y: mb.y - 34, w: 32, h: 32, vx: 1.5, vy: -3 });
-                addFloatingText('¡Súper Pote 1Kg!', mb.x, mb.y - 25, '#f472b6');
-              } else {
-                SFX.cone();
-                score += 200;
-                conesCollected++;
-                addFloatingText('+200 🍦', mb.x, mb.y - 20, '#facc15');
-                updateHud();
-              }
-            }
+            player.vy = 1.4;
           }
         }
       }
 
       // Caída al vacío
-      if (player.y > canvas.height + 60) {
+      if (player.y > GAME_H + 60) {
         player.superMode = false;
         hurtPlayer();
       }
 
-      // Cámara sigue al jugador suavemente
-      const targetCam = Math.max(0, Math.min(player.x - 240, 1850));
-      cameraX += (targetCam - cameraX) * 0.14;
+      // Cámara sigue al jugador suavemente adaptándose al largo de cada nivel
+      const maxCam = Math.max(1850, goalFlag.x - 540);
+      const targetCam = Math.max(0, Math.min(player.x - 240, maxCam));
+      cameraX += (targetCam - cameraX) * 0.11;
 
-      // Recolección de Cucuruchos
+      // Recolección de Cucuruchos (incluye Helado Secreto Oculto de +800 pts)
       for (const c of cones) {
         if (!c.collected) {
           const dx = (player.x + player.w / 2) - c.x;
           const dy = (player.y + player.h / 2) - c.y;
-          if (Math.hypot(dx, dy) < 28) {
+          const pickupR = c.secret ? 34 : 28;
+          if (Math.hypot(dx, dy) < pickupR) {
             c.collected = true;
-            score += 150;
+            const pts = c.points || 150;
+            score += pts;
             conesCollected++;
-            SFX.cone();
-            addFloatingText('+150', c.x, c.y - 10, '#facc15');
+            if (c.secret) {
+              SFX.win();
+              addFloatingText(`🌟 ¡HELADO SECRETO! +${pts} 🍦`, c.x - 95, Math.max(58, c.y + 92), '#facc15');
+              for (let p = 0; p < 24; p++) {
+                particles.push({
+                  x: c.x + (Math.random() - 0.5) * 36,
+                  y: Math.max(8, c.y + 48),
+                  vx: (Math.random() - 0.5) * 6,
+                  vy: Math.random() * 4 + 1,
+                  color: ['#facc15', '#ec4899', '#38bdf8', '#ffffff'][p % 4],
+                  r: Math.random() * 3.2 + 1.5,
+                  life: 36,
+                  maxLife: 36
+                });
+              }
+            } else {
+              SFX.cone();
+              addFloatingText(`+${pts}`, c.x, c.y - 10, '#facc15');
+            }
             updateHud();
           }
         }
       }
 
-      // Movimiento y recolección de Súper Potes 1Kg (Power-Ups)
+      // Movimiento y recolección de premios de bloques [?] (Súper Pote 1Kg y Cucurucho Sorpresa)
       for (let i = powerups.length - 1; i >= 0; i--) {
         const p = powerups[i];
-        p.vy += 0.45;
+        p.vy += 0.30;
+        if (p.vy > 7.5) p.vy = 7.5;
+
+        // Movimiento horizontal con rebote en paredes/rocas
         p.x += p.vx;
+        for (const plat of allSolids) {
+          if (rectIntersect(p, plat)) {
+            if (p.vx > 0) p.x = plat.x - p.w;
+            else if (p.vx < 0) p.x = plat.x + plat.w;
+            p.vx *= -1;
+          }
+        }
+
+        // Movimiento vertical con aterrizaje suave
         p.y += p.vy;
         for (const plat of allSolids) {
           if (rectIntersect(p, plat)) {
             if (p.vy > 0) {
               p.y = plat.y - p.h;
+              if (p.type === 'bonusCone') {
+                // El Cucurucho Sorpresa rebota suavemente y se frena para que no caiga a pozos
+                p.vy = Math.abs(p.vy) > 1.8 ? -p.vy * 0.42 : 0;
+                p.vx *= 0.72;
+                if (Math.abs(p.vx) < 0.08) p.vx = 0;
+              } else {
+                p.vy = 0;
+              }
+            } else if (p.vy < 0) {
+              p.y = plat.y + plat.h;
               p.vy = 0;
             }
           }
         }
+
+        // Destellos dorados suaves en el Cucurucho Sorpresa
+        if (p.type === 'bonusCone' && frameCount % 8 === 0) {
+          particles.push({
+            x: p.x + Math.random() * p.w,
+            y: p.y + Math.random() * p.h,
+            vx: (Math.random() - 0.5) * 0.6,
+            vy: -Math.random() * 0.8 - 0.2,
+            color: '#facc15',
+            r: 1.8,
+            life: 16,
+            maxLife: 16
+          });
+        }
+
+        // Eliminar si cae fuera del mapa
+        if (p.y > GAME_H + 60) {
+          powerups.splice(i, 1);
+          continue;
+        }
+
         if (rectIntersect(player, p)) {
           powerups.splice(i, 1);
-          player.superMode = true;
-          player.superTimer = (typeof CONFIG_JUGADOR !== 'undefined' ? CONFIG_JUGADOR.duracionSuperPoder : 600);
-          score += (typeof CONFIG_PUNTOS !== 'undefined' ? CONFIG_PUNTOS.superPote1KG : 500);
-          SFX.powerup();
-          BGM.setSuperMode(true);
-          addFloatingText('⭐ ¡SÚPER MODO 1 KG! ⭐', player.x - 20, player.y - 25, '#facc15');
-          addFloatingText('¡MODO SÚPER 1KG! +400', player.x, player.y - 20, '#f472b6');
-          updateHud();
+          if (p.type === 'bonusCone') {
+            score += 200;
+            conesCollected++;
+            SFX.cone();
+            addFloatingText('+200 🍦', player.x, player.y - 18, '#facc15');
+            updateHud();
+          } else {
+            player.superMode = true;
+            player.superTimer = (typeof CONFIG_JUGADOR !== 'undefined' && CONFIG_JUGADOR.duracionSuperPoder) ? CONFIG_JUGADOR.duracionSuperPoder : 360;
+            player.superShotsLeft = (typeof CONFIG_JUGADOR !== 'undefined' && CONFIG_JUGADOR.tirosSuperPoder) ? CONFIG_JUGADOR.tirosSuperPoder : 4;
+            const pts1kg = (typeof CONFIG_PUNTOS !== 'undefined' ? CONFIG_PUNTOS.superPote1KG : 500);
+            score += pts1kg;
+            SFX.powerup();
+            BGM.setSuperMode(true);
+            addFloatingText(`⭐ ¡SÚPER 1KG: ${player.superShotsLeft} TIROS LOCOS! +${pts1kg}`, player.x - 45, player.y - 25, '#facc15');
+            updateHud();
+          }
         }
       }
 
-      // Proyectiles de Copos de Nieve
+      // Proyectiles de Copos de Nieve (1 activo por vez)
       for (let i = iceBalls.length - 1; i >= 0; i--) {
         const b = iceBalls[i];
+        const prevY = b.y;
         b.x += b.vx;
         b.y += b.vy;
-        b.vy += 0.22; // Gravedad suave para el copo
+        b.vy += 0.19; // Gravedad suave para el copo
         b.life--;
-        b.angle = (b.angle || 0) + (b.rotSpeed || 0.20);
+        b.angle = (b.angle || 0) + (b.rotSpeed || 0.16);
+
+        // Desaparecer si sale de la pantalla visible para liberar el siguiente disparo
+        if (b.x < cameraX - 24 || b.x > cameraX + GAME_W + 24 || b.y > GAME_H + 20) {
+          b.life = 0;
+        }
 
         // Estela de partículas de escarcha y brillo
-        if (frameCount % 2 === 0) {
+        if (b.life > 0 && frameCount % 3 === 0) {
           particles.push({
             x: b.x + (Math.random() - 0.5) * 4,
             y: b.y + (Math.random() - 0.5) * 4,
-            vx: (Math.random() - 0.5) * 0.8,
-            vy: (Math.random() - 0.5) * 0.8,
+            vx: (Math.random() - 0.5) * 0.7,
+            vy: (Math.random() - 0.5) * 0.7,
             color: b.isSuper ? '#f472b6' : '#e0f2fe',
             r: Math.random() * 2 + 1,
             life: 14,
@@ -928,56 +1193,154 @@
           });
         }
 
-        // Rebote suave en el mostrador o bloques
-        for (const plat of allSolids) {
-          if (b.x > plat.x && b.x < plat.x + plat.w && b.y + b.r > plat.y && b.y - b.r < plat.y + plat.h) {
-            b.vy = -3.8;
-            b.y = plat.y - b.r;
-          }
-        }
-
-        // Colisión copo de nieve con enemigos (Solcitos 45°C y Llamitas)
-        for (const en of enemies) {
-          if (en.alive && b.x > en.x - 6 && b.x < en.x + en.w + 6 && b.y > en.y - 6 && b.y < en.y + en.h + 6) {
-            en.alive = false;
-            b.life = 0;
-            score += 300;
-            SFX.stomp();
-            addFloatingText('❄️ ¡Congelado! +300', en.x, en.y - 12, '#67e8f9');
-            updateHud();
-
-            // Estallido de cristales de hielo brillante
-            for (let p = 0; p < 12; p++) {
-              particles.push({
-                x: en.x + en.w / 2,
-                y: en.y + en.h / 2,
-                vx: (Math.random() - 0.5) * 6,
-                vy: (Math.random() - 0.5) * 6 - 1.5,
-                color: Math.random() > 0.5 ? '#ffffff' : (b.isSuper ? '#f472b6' : '#67e8f9'),
-                r: Math.random() * 3 + 1.5,
-                life: 22,
-                maxLife: 22
-              });
+        // Rebote suave en pisos o estallido de escarcha si choca de frente contra una roca/pared
+        if (b.life > 0) {
+          for (const plat of allSolids) {
+            if (b.x + b.r > plat.x && b.x - b.r < plat.x + plat.w && b.y + b.r > plat.y && b.y - b.r < plat.y + plat.h) {
+              if (prevY + b.r <= plat.y + 8 && b.vy >= 0) {
+                b.vy = -3.1;
+                b.y = plat.y - b.r;
+              } else {
+                b.life = 0;
+                for (let p = 0; p < 6; p++) {
+                  particles.push({
+                    x: b.x,
+                    y: b.y,
+                    vx: (Math.random() - 0.5) * 3.5,
+                    vy: (Math.random() - 0.5) * 3.5,
+                    color: b.isSuper ? '#f472b6' : '#bae6fd',
+                    r: Math.random() * 2 + 1,
+                    life: 14,
+                    maxLife: 14
+                  });
+                }
+                break;
+              }
             }
           }
         }
 
-        // Colisión copo de nieve con Boss Final (Nivel 3: Maestro Heladero Industrial)
-        if (currentLevel === 3 && boss && boss.alive) {
-          if (b.x > boss.x - 6 && b.x < boss.x + boss.w + 6 && b.y > boss.y - 6 && b.y < boss.y + boss.h + 6) {
+        // Colisión copo de nieve con enemigos (Solcitos 45°C y Llamitas — requieren 3 impactos)
+        if (b.life > 0) {
+          for (const en of enemies) {
+            if (en.alive && b.x > en.x - 6 && b.x < en.x + en.w + 6 && b.y > en.y - 6 && b.y < en.y + en.h + 6) {
+              b.life = 0;
+              en.hp = (typeof en.hp === 'number' ? en.hp : 3) - 1;
+              en.hitTimer = 14;
+
+              if (en.hp > 0) {
+                playTone(540, 'triangle', 0.08, 0.09, 360);
+                const tempLeft = Math.max(15, Math.round((en.hp / (en.maxHp || 3)) * 45));
+                addFloatingText(`❄️ ${tempLeft}°C (${en.hp}/${en.maxHp || 3})`, en.x - 10, en.y - 12, '#bae6fd');
+
+                // Pequeño destello de escarcha al enfriar al enemigo
+                for (let p = 0; p < 6; p++) {
+                  particles.push({
+                    x: en.x + en.w / 2,
+                    y: en.y + en.h / 2,
+                    vx: (Math.random() - 0.5) * 4.2,
+                    vy: (Math.random() - 0.5) * 4.2 - 1,
+                    color: p % 2 === 0 ? '#ffffff' : '#67e8f9',
+                    r: Math.random() * 2.2 + 1,
+                    life: 15,
+                    maxLife: 15
+                  });
+                }
+              } else {
+                en.alive = false;
+                score += 300;
+                SFX.stomp();
+                addFloatingText('❄️ ¡Congelado! +300', en.x, en.y - 12, '#67e8f9');
+                updateHud();
+
+                // Estallido de cristales de hielo brillante al derrotarlo
+                for (let p = 0; p < 14; p++) {
+                  particles.push({
+                    x: en.x + en.w / 2,
+                    y: en.y + en.h / 2,
+                    vx: (Math.random() - 0.5) * 6,
+                    vy: (Math.random() - 0.5) * 6 - 1.5,
+                    color: Math.random() > 0.5 ? '#ffffff' : (b.isSuper ? '#f472b6' : '#67e8f9'),
+                    r: Math.random() * 3 + 1.5,
+                    life: 22,
+                    maxLife: 22
+                  });
+                }
+              }
+              break;
+            }
+          }
+        }
+
+        // Colisión copo de nieve con Boss Final (Cabeza = daño fuerte -2 | Costados = blindado, apenas hace daño)
+        if (b.life > 0 && currentLevel === 3 && boss && boss.alive) {
+          if (b.x > boss.x - 6 && b.x < boss.x + boss.w + 6 && b.y > boss.y - 10 && b.y < boss.y + boss.h + 6) {
             b.life = 0;
-            boss.hp--;
-            boss.hitTimer = 22;
-            SFX.stomp();
-            if (boss.hp > 0) {
-              addFloatingText(`❄️ ¡IMPACTO! HP: ${boss.hp}/${boss.maxHp}`, boss.x + 10, boss.y - 15, '#67e8f9');
+            const isHeadHit = b.y <= boss.y + 34;
+
+            if (isHeadHit) {
+              boss.hp = Math.max(0, boss.hp - 2);
+              boss.hitTimer = 22;
+              boss.retreatTimer = 40; // Retrocede hacia atrás al recibir golpe en la cabeza
+              SFX.stomp();
+              for (let p = 0; p < 10; p++) {
+                particles.push({
+                  x: b.x,
+                  y: boss.y + 12,
+                  vx: (Math.random() - 0.5) * 6,
+                  vy: -Math.random() * 4 - 1,
+                  color: p % 2 === 0 ? '#facc15' : '#67e8f9',
+                  r: Math.random() * 2.8 + 1.4,
+                  life: 20,
+                  maxLife: 20
+                });
+              }
+              if (boss.hp > 0) {
+                addFloatingText(`🎯 ¡EN LA CABEZA! -2 (${boss.hp}/${boss.maxHp})`, boss.x - 20, boss.y - 18, '#67e8f9');
+              }
             } else {
+              // Costados blindados: hace muy poco daño (recién 1 punto cada 3 impactos laterales)
+              boss.sideHits = (boss.sideHits || 0) + 1;
+              playTone(190, 'square', 0.06, 0.07, 130);
+              for (let p = 0; p < 5; p++) {
+                particles.push({
+                  x: b.x,
+                  y: b.y,
+                  vx: (b.vx > 0 ? -1 : 1) * (Math.random() * 3 + 1),
+                  vy: (Math.random() - 0.5) * 3,
+                  color: '#cbd5e1',
+                  r: 1.8,
+                  life: 12,
+                  maxLife: 12
+                });
+              }
+              if (boss.sideHits >= 3) {
+                boss.sideHits = 0;
+                boss.hp = Math.max(0, boss.hp - 1);
+                boss.hitTimer = 10;
+                if (boss.hp > 0) {
+                  addFloatingText(`🛡️ Rasguño -1 (¡Apuntá a la CABEZA!)`, boss.x - 35, boss.y - 16, '#cbd5e1');
+                }
+              } else {
+                addFloatingText('🛡️ ¡BLINDADO! Pegale en la CABEZA', boss.x - 35, boss.y + 35, '#94a3b8');
+              }
+            }
+
+            // Activar Modo Furia cuando baja a la mitad de la vida
+            if (boss.hp > 0 && !boss.enraged && boss.hp <= Math.ceil(boss.maxHp / 2)) {
+              boss.enraged = true;
+              boss.vx = boss.vx > 0 ? 2.4 : -2.4;
+              addFloatingText('🔥 ¡ROBOT EN MODO FURIA!', boss.x - 25, boss.y - 40, '#ef4444');
+            }
+
+            if (boss.hp <= 0) {
               boss.alive = false;
+              bossProjectiles = [];
               score += 1000;
               SFX.win();
               addFloatingText('💥 ¡MAESTRO INDUSTRIAL DERROTADO! +1000', boss.x - 40, boss.y - 20, '#facc15');
               addFloatingText('🍫 ¡SABOR RECUPERADO: CHOCOLATE MALVINAS!', boss.x - 50, boss.y - 45, '#4ade80');
-              for (let p = 0; p < 30; p++) {
+              for (let p = 0; p < 34; p++) {
                 particles.push({
                   x: boss.x + boss.w / 2,
                   y: boss.y + boss.h / 2,
@@ -996,32 +1359,157 @@
         if (b.life <= 0) iceBalls.splice(i, 1);
       }
 
-      // Actualizar Boss Final en Nivel 3
+      // Actualizar Boss Final en Nivel 3 (Retrocede hacia atrás en la arena plana, salta y ataca en 2 Fases)
       if (currentLevel === 3 && boss && boss.alive) {
+        const arenaActive = player.x >= 1580;
+        const bossSpeed = boss.enraged ? 2.4 : 1.75;
+        const arenaLimitRight = boss.arenaMaxX || 2860;
+        // A medida que pierde vida, su zona de combate se va corriendo hacia atrás (derecha)
+        const dmgTaken = Math.max(0, boss.maxHp - boss.hp);
+        const dynamicMinX = Math.min(arenaLimitRight - 280, 1820 + dmgTaken * 68);
+        boss.minX = dynamicMinX;
+
+        if (boss.retreatTimer > 0) {
+          boss.retreatTimer--;
+          // Retroceso rápido hacia atrás tras recibir daño en la cabeza
+          if (boss.x + boss.w < arenaLimitRight) {
+            boss.vx = boss.enraged ? 3.2 : 2.7;
+          } else {
+            boss.vx = -bossSpeed;
+          }
+        } else if (arenaActive && (boss.x - player.x) < 175 && (boss.x - player.x) > -20 && (boss.x + boss.w) < arenaLimitRight - 20) {
+          // Si Analía se acerca de frente, el Robot va reculando hacia atrás mientras dispara
+          boss.vx = bossSpeed * 0.95;
+        } else {
+          boss.vx = (boss.vx >= 0 ? 1 : -1) * bossSpeed;
+        }
+
         boss.x += boss.vx;
-        if (boss.x < boss.minX || boss.x + boss.w > boss.maxX) {
-          boss.vx *= -1;
+        if (boss.x < boss.minX) {
+          boss.x = boss.minX;
+          boss.vx = bossSpeed;
+        } else if (boss.x + boss.w > arenaLimitRight) {
+          boss.x = arenaLimitRight - boss.w;
+          boss.vx = -bossSpeed;
         }
         if (boss.hitTimer > 0) boss.hitTimer--;
 
-        // Boss dispara proyectiles de pasta industrial cada ~115 frames
-        boss.shootTimer++;
-        if (boss.shootTimer >= 115) {
-          boss.shootTimer = 0;
-          const dir = player.x < boss.x ? -1 : 1;
-          bossProjectiles.push({
-            x: boss.x + (dir === -1 ? -8 : boss.w + 8),
-            y: boss.y + 40,
-            vx: dir * 3.5,
-            vy: -1.6,
-            r: 9,
-            life: 130
-          });
+        // Salto periódico del Robot para dificultar la pelea
+        if (arenaActive) {
+          boss.jumpTimer = (boss.jumpTimer || 0) + 1;
+          const jumpInterval = boss.enraged ? 125 : 165;
+          if (boss.jumpTimer >= jumpInterval && boss.y >= (boss.baseY || 286)) {
+            boss.jumpTimer = 0;
+            boss.vy = boss.enraged ? -9.2 : -8.2;
+          }
+        }
+        if (boss.vy !== 0 || boss.y < (boss.baseY || 286)) {
+          boss.y += boss.vy;
+          boss.vy += 0.42;
+          if (boss.y >= (boss.baseY || 286)) {
+            boss.y = boss.baseY || 286;
+            boss.vy = 0;
+            // Polvo al aterrizar
+            for (let p = 0; p < 6; p++) {
+              particles.push({
+                x: boss.x + Math.random() * boss.w,
+                y: boss.y + boss.h,
+                vx: (Math.random() - 0.5) * 4,
+                vy: -Math.random() * 2,
+                color: '#94a3b8',
+                r: 2.5,
+                life: 16,
+                maxLife: 16
+              });
+            }
+          }
         }
 
-        // Colisión cuerpo a cuerpo con Boss
+        // Boss dispara proyectiles hacia Analía (en Fase 2 dispara ráfaga doble cubriendo plataformas!)
+        if (arenaActive) {
+          boss.shootTimer++;
+          const shootInterval = boss.enraged ? 88 : 112;
+          if (boss.shootTimer >= shootInterval) {
+            boss.shootTimer = 0;
+            const dir = (player.x + player.w / 2) < (boss.x + boss.w / 2) ? -1 : 1;
+            const playerIsHigh = player.y < boss.y + 10;
+            bossProjectiles.push({
+              x: boss.x + (dir === -1 ? -8 : boss.w + 8),
+              y: boss.y + 38,
+              vx: dir * (boss.enraged ? 3.5 : 3.0),
+              vy: playerIsHigh ? -3.4 : -1.5,
+              r: 9,
+              life: 155
+            });
+            if (boss.enraged) {
+              bossProjectiles.push({
+                x: boss.x + (dir === -1 ? -8 : boss.w + 8),
+                y: boss.y + 24,
+                vx: dir * 2.8,
+                vy: playerIsHigh ? -1.4 : -3.8,
+                r: 8.5,
+                life: 160
+              });
+            }
+          }
+        }
+
+        // Colisión cuerpo a cuerpo con Boss (Saltar ARRIBA de su cabeza le hace GRAN daño!)
         if (rectIntersect(player, boss)) {
-          hurtPlayer();
+          const isStompOnHead = player.vy > 0 && (player.y + player.h - player.vy) <= boss.y + 30;
+          if (isStompOnHead) {
+            const bounceDir = (player.x + player.w / 2) < (boss.x + boss.w / 2) ? -1 : 1;
+            player.y = boss.y - player.h - 2;
+            player.vy = -10.5;
+            player.vx = bounceDir * 3.8;
+            if (boss.hitTimer <= 0) {
+              boss.hp = Math.max(0, boss.hp - 3);
+              boss.hitTimer = 28;
+              boss.retreatTimer = 46; // Retrocede hacia atrás al recibir pisotón en la cabeza
+              SFX.stomp();
+              for (let p = 0; p < 14; p++) {
+                particles.push({
+                  x: boss.x + boss.w / 2,
+                  y: boss.y + 8,
+                  vx: (Math.random() - 0.5) * 7,
+                  vy: -Math.random() * 5 - 1,
+                  color: p % 2 === 0 ? '#facc15' : '#ec4899',
+                  r: Math.random() * 3 + 1.5,
+                  life: 24,
+                  maxLife: 24
+                });
+              }
+              if (boss.hp > 0 && !boss.enraged && boss.hp <= Math.ceil(boss.maxHp / 2)) {
+                boss.enraged = true;
+                addFloatingText('🔥 ¡ROBOT EN MODO FURIA!', boss.x - 25, boss.y - 42, '#ef4444');
+              }
+              if (boss.hp > 0) {
+                addFloatingText(`💥 ¡PISOTÓN EN LA CABEZA! -3 (${boss.hp}/${boss.maxHp})`, boss.x - 35, boss.y - 20, '#facc15');
+              } else {
+                boss.alive = false;
+                bossProjectiles = [];
+                score += 1000;
+                SFX.win();
+                addFloatingText('💥 ¡MAESTRO INDUSTRIAL DERROTADO! +1000', boss.x - 40, boss.y - 20, '#facc15');
+                addFloatingText('🍫 ¡SABOR RECUPERADO: CHOCOLATE MALVINAS!', boss.x - 50, boss.y - 45, '#4ade80');
+                for (let p = 0; p < 34; p++) {
+                  particles.push({
+                    x: boss.x + boss.w / 2,
+                    y: boss.y + boss.h / 2,
+                    vx: (Math.random() - 0.5) * 9,
+                    vy: (Math.random() - 0.5) * 9 - 2,
+                    color: ['#ec4899', '#38bdf8', '#facc15', '#ffffff'][Math.floor(Math.random() * 4)],
+                    r: Math.random() * 4 + 2,
+                    life: 35,
+                    maxLife: 35
+                  });
+                }
+              }
+              updateHud();
+            }
+          } else {
+            hurtPlayer();
+          }
         }
       }
 
@@ -1030,7 +1518,7 @@
         const bp = bossProjectiles[i];
         bp.x += bp.vx;
         bp.y += bp.vy;
-        bp.vy += 0.08;
+        bp.vy += 0.06;
         bp.life--;
 
         // Colisión con jugador
@@ -1045,23 +1533,61 @@
         }
       }
 
-      // Enemigos (Solcitos 45°C y Llamitas)
+      // Enemigos (Solcitos 45°C y Llamitas — 2 pisotones o 3 copos de nieve)
       for (const en of enemies) {
         if (!en.alive) continue;
+        if (en.hitTimer > 0) en.hitTimer--;
+        if (en.stompGrace > 0) en.stompGrace--;
         en.x += en.vx;
         if (en.x < en.minX || en.x + en.w > en.maxX) {
           en.vx *= -1;
         }
         if (rectIntersect(player, en)) {
-          // Si cae encima como Mario Bros -> aplasta al enemigo
-          if (player.vy > 0 && player.y + player.h - player.vy <= en.y + 16) {
-            en.alive = false;
-            player.vy = -8.8;
-            score += 250;
+          // Si cae encima como Mario Bros -> saca la mitad de la vida (2 pisotones para derrotarlo)
+          if (player.vy > 0 && player.y + player.h - player.vy <= en.y + 18) {
+            player.y = en.y - player.h - 2;
+            player.vy = -8.6;
+            const maxHp = en.maxHp || 3;
+            const stompDamage = maxHp / 2; // 1.5 HP sobre 3 -> 2 saltos encima lo derrotan (y se combina con los copos!)
+            en.hp = Math.max(0, (typeof en.hp === 'number' ? en.hp : maxHp) - stompDamage);
+            en.hitTimer = 16;
+            en.stompGrace = 14;
             SFX.stomp();
-            addFloatingText('+250 ¡Fresco!', en.x, en.y - 12, '#4ade80');
-            updateHud();
-          } else {
+
+            if (en.hp > 0) {
+              const tempLeft = Math.max(10, Math.round((en.hp / maxHp) * 45));
+              addFloatingText(`❄️ ¡Pisotón! ${tempLeft}°C`, en.x - 10, en.y - 12, '#67e8f9');
+              for (let p = 0; p < 7; p++) {
+                particles.push({
+                  x: en.x + en.w / 2,
+                  y: en.y + 6,
+                  vx: (Math.random() - 0.5) * 4.5,
+                  vy: -Math.random() * 3.2 - 0.8,
+                  color: p % 2 === 0 ? '#ffffff' : '#67e8f9',
+                  r: Math.random() * 2.4 + 1,
+                  life: 16,
+                  maxLife: 16
+                });
+              }
+            } else {
+              en.alive = false;
+              score += 250;
+              addFloatingText('+250 ¡Fresco!', en.x, en.y - 12, '#4ade80');
+              for (let p = 0; p < 14; p++) {
+                particles.push({
+                  x: en.x + en.w / 2,
+                  y: en.y + en.h / 2,
+                  vx: (Math.random() - 0.5) * 6,
+                  vy: (Math.random() - 0.5) * 6 - 1.5,
+                  color: p % 2 === 0 ? '#ffffff' : '#4ade80',
+                  r: Math.random() * 3 + 1.5,
+                  life: 22,
+                  maxLife: 22
+                });
+              }
+              updateHud();
+            }
+          } else if (!(en.stompGrace > 0)) {
             hurtPlayer();
           }
         }
@@ -1101,15 +1627,25 @@
 
           setTimeout(() => {
             if (currentLevel === 1) {
-              currentLevel = 2;
-              gameState = 'PLAYING';
-              buildLevel(2);
-              if (soundEnabled) BGM.start();
+              if (typeof startOfficialGame === 'function') {
+                startOfficialGame(2, true);
+              } else {
+                currentLevel = 2;
+                gameState = 'PLAYING';
+                buildLevel(2);
+                if (typeof ensureFullscreen === 'function') ensureFullscreen();
+                if (soundEnabled) BGM.start();
+              }
             } else if (currentLevel === 2) {
-              currentLevel = 3;
-              gameState = 'PLAYING';
-              buildLevel(3);
-              if (soundEnabled) BGM.start();
+              if (typeof startOfficialGame === 'function') {
+                startOfficialGame(3, true);
+              } else {
+                currentLevel = 3;
+                gameState = 'PLAYING';
+                buildLevel(3);
+                if (typeof ensureFullscreen === 'function') ensureFullscreen();
+                if (soundEnabled) BGM.start();
+              }
             } else {
               gameState = 'VICTORY';
               openEndModal(true);
@@ -1139,394 +1675,74 @@
      * 5. RENDERIZADO VISUAL (CANVAS PIXEL-ART / 2D)
      **************************************************************/
     function drawGame() {
+      ctx.setTransform(RENDER_SCALE, 0, 0, RENDER_SCALE, 0, 0);
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+
       if (currentLevel === 1) {
         // ==============================================================
-        // NIVEL 1: INTERIOR DEL LOCAL DE HELADERÍA LAS MALVINAS (PIXEL ART)
-        // Basado fielmente en la foto real de la heladería
+        // NIVEL 1: DIQUE DE LOS SAUCES (LA RIOJA) — PIXEL ART PANORÁMICO
+        // Textura continua y suave (sin corte vertical visible al repetir)
         // ==============================================================
-
-        // 1. Techo Blanco Arquitectónico y Pared Superior
-        ctx.fillStyle = '#f8fafc';
-        ctx.fillRect(0, 0, canvas.width, 115);
-
-        // Desnivel y moldura biselada del techo (cove lighting)
-        const ceilingGrad = ctx.createLinearGradient(0, 92, 0, 115);
-        ceilingGrad.addColorStop(0, '#f8fafc');
-        ceilingGrad.addColorStop(1, '#e2e8f0');
-        ctx.fillStyle = ceilingGrad;
-        ctx.fillRect(0, 92, canvas.width, 23);
-
-        // 2. Luminarias LED tubulares diagonales paralelas (/ / / / / /)
-        // Tubos blancos intensos con suave perspectiva, idénticos a la foto
-        const ledSpacing = 135;
-        const ledParallax = (cameraX * 0.16) % ledSpacing;
-        for (let x = -160 - ledParallax; x < canvas.width + 160; x += ledSpacing) {
-          // Halo de luz difusa
-          ctx.strokeStyle = 'rgba(255, 255, 255, 0.42)';
-          ctx.lineWidth = 14;
-          ctx.beginPath();
-          ctx.moveTo(x + 75, 8);
-          ctx.lineTo(x + 8, 105);
-          ctx.stroke();
-
-          // Barra luminosa tubular blanca pura
-          ctx.strokeStyle = '#ffffff';
-          ctx.lineWidth = 5;
-          ctx.lineCap = 'round';
-          ctx.beginPath();
-          ctx.moveTo(x + 75, 8);
-          ctx.lineTo(x + 8, 105);
-          ctx.stroke();
-
-          // Borde sutil metálico de fijación
-          ctx.strokeStyle = 'rgba(148, 163, 184, 0.35)';
-          ctx.lineWidth = 1.2;
-          ctx.stroke();
-        }
-
-        // Focos empotrados modernos dobles en el techo (downlights cuadrados)
-        for (let fx = 70; fx < canvas.width + 120; fx += 220) {
-          const spotX = fx - ((cameraX * 0.16) % 220);
-          ctx.fillStyle = '#ffffff';
-          ctx.fillRect(spotX, 38, 28, 18);
-          ctx.strokeStyle = '#cbd5e1';
-          ctx.lineWidth = 1.2;
-          ctx.strokeRect(spotX, 38, 28, 18);
-          // Dos puntos de luz cálida LED
-          ctx.fillStyle = '#fef08a';
-          ctx.beginPath();
-          ctx.arc(spotX + 8, 47, 4, 0, Math.PI * 2);
-          ctx.arc(spotX + 20, 47, 4, 0, Math.PI * 2);
-          ctx.fill();
-        }
-
-        // Riel suspendido negro de climatización / luminarias
-        ctx.fillStyle = '#1e293b';
-        ctx.fillRect(0, 112, canvas.width, 4);
-
-        // 3. Gran Pared Fucsia Institucional de Las Malvinas (#d81b60)
-        const wallGrad = ctx.createLinearGradient(0, 116, 0, 260);
-        wallGrad.addColorStop(0, '#e6007e');
-        wallGrad.addColorStop(0.3, '#d81b60');
-        wallGrad.addColorStop(1, '#be185d');
-        ctx.fillStyle = wallGrad;
-        ctx.fillRect(0, 116, canvas.width, 144);
-
-        // 4. Cartelera de Sabores de Madera Dorada ("Cartelera de Sabores Malvinas")
-        // Como en la foto: panel horizontal con 4 hileras de varillas y sabores reales
-        const boardW = 600;
-        const boardH = 88;
-        const boardCycle = boardW + 280;
-        const boardX = 20 - ((cameraX * 0.24) % boardCycle);
-
-        for (let rep = -1; rep <= 2; rep++) {
-          const bx = boardX + rep * boardCycle;
-          if (bx + boardW > -60 && bx < canvas.width + 60) {
-            // Marco de madera natural
-            ctx.fillStyle = '#78350f';
-            ctx.fillRect(bx, 126, boardW, boardH);
-            ctx.fillStyle = '#92400e';
-            ctx.fillRect(bx + 3, 129, boardW - 6, boardH - 6);
-
-            // 4 Varillas de madera con sabores de la heladería
-            const flavors = [
-              "DULCE DE LECHE GRANIZADO  •  FRUTILLA A LA REINA  •  CHOCOLATE MALVINAS  •  VAINILLA",
-              "LIMÓN AL AGUA  •  TRAMONTANA ESPECIAL  •  MENTA GRANIZADA  •  CREMA AMERICANA",
-              "BANANA SPLIT  •  SAMBAYÓN ARTESANAL  •  SÚPER DULCE DE LECHE  •  CEREZA A LA CREMA",
-              "MARACUYÁ AL AGUA  •  FRUTOS DEL BOSQUE  •  CHOCOLATE BLANCO  •  FLAN CASERO"
-            ];
-
-            for (let r = 0; r < 4; r++) {
-              const slatY = 133 + r * 19;
-              ctx.fillStyle = r % 2 === 0 ? '#b45309' : '#a16207';
-              ctx.fillRect(bx + 6, slatY, boardW - 12, 16);
-              ctx.fillStyle = '#fef08a';
-              ctx.fillRect(bx + 6, slatY, boardW - 12, 1.5); // Brillo superior
-
-              // Texto del sabor
-              ctx.fillStyle = '#fefce8';
-              ctx.font = '7px ' + PIXEL_FONT_READABLE;
-              ctx.fillText(flavors[r], bx + 10, slatY + 11);
-            }
-
-            // Pantalla TV digital de precios colgada junto a la cartelera
-            const tvX = bx + boardW + 16;
-            ctx.fillStyle = '#0f172a';
-            ctx.fillRect(tvX, 130, 85, 54);
-            ctx.strokeStyle = '#334155';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(tvX, 130, 85, 54);
-            ctx.fillStyle = '#1e293b';
-            ctx.fillRect(tvX + 3, 133, 79, 48);
-
-            // Textos en la pantalla
-            ctx.fillStyle = '#f472b6';
-            ctx.font = '6px ' + PIXEL_FONT;
-            ctx.fillText('HELADOS MALVINAS', tvX + 6, 143);
-            ctx.fillStyle = '#4ade80';
-            ctx.font = '5.5px ' + PIXEL_FONT;
-            ctx.fillText('1 KG: PROMO TOP', tvX + 6, 154);
-            ctx.fillText('2 CUCURUCHOS', tvX + 6, 163);
-            ctx.fillStyle = '#67e8f9';
-            ctx.fillText('100% ARTESANAL', tvX + 6, 173);
+        const bgImg = bgDiqueSaucesSeamless || (bgDiqueSaucesLoaded ? bgDiqueSauces : null);
+        if (bgImg && (bgImg.width || bgImg.naturalWidth) > 0) {
+          const origW = bgImg.width || bgImg.naturalWidth;
+          const origH = bgImg.height || bgImg.naturalHeight;
+          const bgH = GAME_H;
+          const bgW = (origW / origH) * bgH;
+          const pxOffset = (cameraX * 0.28) % bgW;
+          ctx.drawImage(bgImg, -pxOffset, 0, bgW, bgH);
+          ctx.drawImage(bgImg, -pxOffset + bgW, 0, bgW, bgH);
+          if (-pxOffset + bgW < GAME_W) {
+            ctx.drawImage(bgImg, -pxOffset + bgW * 2, 0, bgW, bgH);
           }
-        }
-
-        // 5. Pared de Servicio / Franjas Verticales de Azulejos Modernos
-        ctx.fillStyle = '#1e293b';
-        ctx.fillRect(0, 260, canvas.width, 120);
-        for (let tx = 0; tx < canvas.width; tx += 28) {
-          ctx.fillStyle = (tx / 28) % 2 === 0 ? '#334155' : '#475569';
-          ctx.fillRect(tx, 260, 27, 120);
-        }
-
-        // 6. Columna Arquitectónica con Neón Oficial de Las Malvinas
-        const colSpacing = 680;
-        const colParallax = (cameraX * 0.30) % colSpacing;
-        for (let cx = 460 - colParallax; cx < canvas.width + 200; cx += colSpacing) {
-          if (cx > -120 && cx < canvas.width + 120) {
-            // Columna de hormigón claro
-            ctx.fillStyle = '#cbd5e1';
-            ctx.fillRect(cx, 75, 78, 305);
-            ctx.fillStyle = '#94a3b8';
-            ctx.fillRect(cx + 72, 75, 6, 305);
-            ctx.fillStyle = '#f1f5f9';
-            ctx.fillRect(cx, 75, 5, 305);
-
-            // Letrero Neón del Espiral / Cono de Helado (como en la foto y logo)
-            const neonX = cx + 38;
-            const neonY = 175;
-            const glowPulse = Math.sin(frameCount * 0.1) * 3 + 6;
-
-            ctx.save();
-            ctx.shadowBlur = glowPulse;
-
-            // Neón superior fucsia / magenta
-            ctx.strokeStyle = '#ec4899';
-            ctx.shadowColor = '#ec4899';
-            ctx.lineWidth = 3.5;
-            ctx.lineCap = 'round';
-            ctx.beginPath();
-            ctx.moveTo(neonX - 10, neonY - 26);
-            ctx.bezierCurveTo(neonX + 14, neonY - 22, neonX - 14, neonY - 10, neonX + 12, neonY);
-            ctx.stroke();
-
-            // Neón inferior celeste / cian
-            ctx.strokeStyle = '#38bdf8';
-            ctx.shadowColor = '#38bdf8';
-            ctx.beginPath();
-            ctx.moveTo(neonX + 12, neonY);
-            ctx.bezierCurveTo(neonX - 12, neonY + 10, neonX + 10, neonY + 20, neonX - 2, neonY + 30);
-            ctx.stroke();
-
-            // Núcleo blanco del tubo neón
-            ctx.shadowBlur = 0;
-            ctx.strokeStyle = '#ffffff';
-            ctx.lineWidth = 1.5;
-            ctx.beginPath();
-            ctx.moveTo(neonX - 10, neonY - 26);
-            ctx.bezierCurveTo(neonX + 14, neonY - 22, neonX - 14, neonY - 10, neonX + 12, neonY);
-            ctx.bezierCurveTo(neonX - 12, neonY + 10, neonX + 10, neonY + 20, neonX - 2, neonY + 30);
-            ctx.stroke();
-            ctx.restore();
-
-            // Libélulas doradas decorativas sobre la pared/columna (como en la foto)
-            const dragonflies = [
-              [cx + 18, 120, 0.2],
-              [cx + 56, 135, -0.3],
-              [cx + 24, 250, 0.4]
-            ];
-            for (const [dfX, dfY, rot] of dragonflies) {
-              ctx.save();
-              ctx.translate(dfX, dfY);
-              ctx.rotate(rot);
-              ctx.fillStyle = '#facc15';
-              ctx.fillRect(-1, -6, 2, 12);
-              ctx.fillStyle = 'rgba(254, 240, 138, 0.85)';
-              ctx.beginPath();
-              ctx.ellipse(-5, -2, 6, 2, -0.2, 0, Math.PI * 2);
-              ctx.ellipse(5, -2, 6, 2, 0.2, 0, Math.PI * 2);
-              ctx.ellipse(-4, 2, 5, 1.8, 0.2, 0, Math.PI * 2);
-              ctx.ellipse(4, 2, 5, 1.8, -0.2, 0, Math.PI * 2);
-              ctx.fill();
-              ctx.restore();
-            }
-
-            // 7. Maceta Moderna Negra con Planta Tropical
-            const potX = cx + 45;
-            ctx.fillStyle = '#0f172a';
-            ctx.fillRect(potX, 318, 30, 62);
-            ctx.fillStyle = '#1e293b';
-            ctx.fillRect(potX + 2, 318, 6, 62);
-            for (let leaf = 0; leaf < 7; leaf++) {
-              const leafAng = -Math.PI * 0.85 + leaf * 0.28;
-              const lx2 = potX + 15 + Math.cos(leafAng) * 36;
-              const ly2 = 318 + Math.sin(leafAng) * 38;
-              ctx.beginPath();
-              ctx.moveTo(potX + 15, 318);
-              ctx.quadraticCurveTo(potX + 15 + Math.cos(leafAng) * 18, 318 + Math.sin(leafAng) * 28 - 10, lx2, ly2);
-              ctx.lineWidth = 3.5;
-              ctx.strokeStyle = leaf % 2 === 0 ? '#16a34a' : '#22c55e';
-              ctx.stroke();
-            }
-          }
+        } else {
+          // Fallback con degradado de cielo y cerros del dique
+          const skyGrad = ctx.createLinearGradient(0, 0, 0, GAME_H);
+          skyGrad.addColorStop(0, '#38bdf8');
+          skyGrad.addColorStop(0.48, '#0284c7');
+          skyGrad.addColorStop(0.85, '#0369a1');
+          ctx.fillStyle = skyGrad;
+          ctx.fillRect(0, 0, GAME_W, GAME_H);
         }
       } else if (currentLevel === 2) {
         // ==============================================================
-        // NIVEL 2: NOCHE DE CALLE EN LA RIOJA (ESTRELLAS, EDIFICIOS Y FAROLAS)
+        // NIVEL 2: PARQUE DE LA CIUDAD & SUPERDOMO (LA RIOJA)
+        // Fondo oficial nocturno con el Superdomo, cerros y luminarias
+        // Textura continua y suave (sin corte vertical visible al repetir)
         // ==============================================================
-        const skyGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
-        skyGrad.addColorStop(0, '#0f172a');
-        skyGrad.addColorStop(0.6, '#311042');
-        skyGrad.addColorStop(1, '#be185d');
-        ctx.fillStyle = skyGrad;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // Estrellas titilantes
-        ctx.fillStyle = '#fff';
-        for (let i = 0; i < 30; i++) {
-          const sx = ((i * 97) % 800);
-          const sy = ((i * 53) % 220);
-          ctx.fillRect(sx, sy, 2, 2);
-        }
-
-        // Cerros Riojanos nocturnos
-        ctx.fillStyle = '#4c1d95';
-        for (let i = 0; i < 7; i++) {
-          const hx = i * 360 - (cameraX * 0.12);
-          ctx.beginPath();
-          ctx.arc(hx + 180, 380, 160, Math.PI, 0);
-          ctx.fill();
-        }
-
-        // Nubes nocturnas
-        ctx.fillStyle = 'rgba(244,114,182,0.25)';
-        for (let i = 0; i < 9; i++) {
-          const cx = i * 310 + 80 - (cameraX * 0.25);
-          const cy = 60 + (i % 3) * 30;
-          ctx.beginPath();
-          ctx.arc(cx, cy, 22, 0, Math.PI * 2);
-          ctx.arc(cx + 20, cy - 6, 26, 0, Math.PI * 2);
-          ctx.arc(cx + 42, cy, 20, 0, Math.PI * 2);
-          ctx.fill();
-        }
-
-        // Edificios urbanos nocturnos
-        const streetBlocks = [
-          { w: 140, h: 175, wall: '#334155', roof: '#b45309', windows: 3, floors: 2, type: 'shop', awning: '#ec4899', name: 'CAFÉ' },
-          { w: 180, h: 220, wall: '#1e293b', roof: '#0284c7', windows: 4, floors: 3, type: 'apartments', name: 'EDIFICIO RIVADAVIA' },
-          { w: 120, h: 145, wall: '#475569', roof: '#be185d', windows: 2, floors: 2, type: 'house', awning: '#38bdf8' },
-          { w: 155, h: 190, wall: '#312e81', roof: '#d97706', windows: 3, floors: 2, type: 'shop', awning: '#f43f5e', name: 'KIOSCO' },
-          { w: 195, h: 235, wall: '#1e1b4b', roof: '#475569', windows: 4, floors: 3, type: 'modern' },
-          { w: 130, h: 155, wall: '#3f3f46', roof: '#ea580c', windows: 3, floors: 2, type: 'house' },
-          { w: 165, h: 185, wall: '#1e293b', roof: '#0369a1', windows: 3, floors: 2, type: 'shop', awning: '#ec4899', name: 'FARMACIA' },
-          { w: 145, h: 210, wall: '#27272a', roof: '#db2777', windows: 3, floors: 3, type: 'apartments' }
-        ];
-
-        const blockTotalW = 1230;
-        const startCycle = Math.floor((cameraX * 0.35 - 300) / blockTotalW);
-        const endCycle = Math.ceil((cameraX * 0.35 + canvas.width + 300) / blockTotalW);
-
-        for (let c = startCycle; c <= endCycle; c++) {
-          let curX = c * blockTotalW - (cameraX * 0.35);
-          for (let b = 0; b < streetBlocks.length; b++) {
-            const bld = streetBlocks[b];
-            const bY = 380 - bld.h;
-            if (curX + bld.w > -60 && curX < canvas.width + 60) {
-              ctx.fillStyle = bld.wall;
-              ctx.fillRect(curX, bY, bld.w, bld.h);
-              ctx.fillStyle = bld.roof;
-              ctx.fillRect(curX - 2, bY - 4, bld.w + 4, 6);
-
-              const winW = 16, winH = 22, winCols = bld.windows, winRows = bld.floors;
-              const spacingX = (bld.w - winCols * winW) / (winCols + 1);
-              const spacingY = (bld.h - 55 - winRows * winH) / (winRows + 1);
-
-              for (let r = 0; r < winRows; r++) {
-                for (let col = 0; col < winCols; col++) {
-                  const wx = curX + spacingX + col * (winW + spacingX);
-                  const wy = bY + 16 + spacingY + r * (winH + spacingY);
-                  ctx.fillStyle = '#fff';
-                  ctx.fillRect(wx - 1, wy - 1, winW + 2, winH + 2);
-                  ctx.fillStyle = col % 2 === 0 ? '#fef08a' : '#1e293b';
-                  ctx.fillRect(wx, wy, winW, winH);
-                }
-              }
-
-              if (bld.awning) {
-                const awnY = 380 - 45;
-                ctx.fillStyle = bld.awning;
-                ctx.fillRect(curX + 6, awnY, bld.w - 12, 14);
-                for (let s = 0; s < (bld.w - 12) / 10; s++) {
-                  if (s % 2 === 0) {
-                    ctx.fillStyle = '#ffffff';
-                    ctx.fillRect(curX + 6 + s * 10, awnY, 5, 14);
-                  }
-                }
-                ctx.fillStyle = '#facc15';
-                ctx.fillRect(curX + bld.w / 2 - 16, awnY + 16, 32, 28);
-              }
-
-              if (bld.name) {
-                ctx.fillStyle = '#1e293b';
-                ctx.fillRect(curX + bld.w / 2 - 32, bY + 6, 64, 12);
-                ctx.fillStyle = '#fff';
-                ctx.font = '7px ' + PIXEL_FONT;
-                ctx.textAlign = 'center';
-                ctx.fillText(bld.name, curX + bld.w / 2, bY + 15);
-                ctx.textAlign = 'left';
-              }
-            }
-            curX += bld.w;
+        const bgImg = bgParqueCiudadSeamless || (bgParqueCiudadLoaded ? bgParqueCiudad : null);
+        if (bgImg && (bgImg.width || bgImg.naturalWidth) > 0) {
+          const origW = bgImg.width || bgImg.naturalWidth;
+          const origH = bgImg.height || bgImg.naturalHeight;
+          const bgH = GAME_H;
+          const bgW = (origW / origH) * bgH;
+          const pxOffset = (cameraX * 0.28) % bgW;
+          ctx.drawImage(bgImg, -pxOffset, 0, bgW, bgH);
+          ctx.drawImage(bgImg, -pxOffset + bgW, 0, bgW, bgH);
+          if (-pxOffset + bgW < GAME_W) {
+            ctx.drawImage(bgImg, -pxOffset + bgW * 2, 0, bgW, bgH);
           }
-        }
-
-        // Farolas de Alumbrado Público y Árboles
-        for (let i = 0; i < 16; i++) {
-          const lx = i * 260 + 50 - (cameraX * 0.5);
-          if (lx > -70 && lx < canvas.width + 70) {
-            const treeX = lx + 120;
-            ctx.fillStyle = '#78350f';
-            ctx.fillRect(treeX - 4, 305, 8, 75);
-            ctx.fillStyle = '#15803d';
-            ctx.beginPath();
-            ctx.arc(treeX, 285, 26, 0, Math.PI * 2);
-            ctx.arc(treeX - 16, 290, 20, 0, Math.PI * 2);
-            ctx.arc(treeX + 16, 290, 20, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = '#22c55e';
-            ctx.beginPath();
-            ctx.arc(treeX - 4, 278, 18, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.fillStyle = '#334155';
-            ctx.fillRect(lx - 2, 275, 4, 105);
-            ctx.fillRect(lx - 12, 275, 14, 3);
-            ctx.fillStyle = '#fef08a';
-            ctx.beginPath();
-            ctx.arc(lx - 10, 280, 4, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.fillStyle = 'rgba(254, 240, 138, 0.12)';
-            ctx.beginPath();
-            ctx.moveTo(lx - 10, 280);
-            ctx.lineTo(lx - 45, 380);
-            ctx.lineTo(lx + 25, 380);
-            ctx.closePath();
-            ctx.fill();
-          }
+        } else {
+          // Fallback con degradado nocturno
+          const skyGrad = ctx.createLinearGradient(0, 0, 0, GAME_H);
+          skyGrad.addColorStop(0, '#0f172a');
+          skyGrad.addColorStop(0.6, '#1e1b4b');
+          skyGrad.addColorStop(1, '#312e81');
+          ctx.fillStyle = skyGrad;
+          ctx.fillRect(0, 0, GAME_W, GAME_H);
         }
       } else {
         // ==============================================================
         // NIVEL 3: MICROCENTRO RIOJANO (ATARDECER/NOCHE, CIUDAD Y MARQUESINAS)
         // ==============================================================
-        const skyGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        const skyGrad = ctx.createLinearGradient(0, 0, 0, GAME_H);
         skyGrad.addColorStop(0, '#020617');
         skyGrad.addColorStop(0.55, '#1e1b4b');
         skyGrad.addColorStop(0.85, '#431407');
         skyGrad.addColorStop(1, '#701a75');
         ctx.fillStyle = skyGrad;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillRect(0, 0, GAME_W, GAME_H);
 
         // Estrellas
         ctx.fillStyle = '#fff';
@@ -1565,7 +1781,7 @@
         // Gran Marquesina Neón de Heladería Las Malvinas sobre los edificios
         for (let i = 0; i < 4; i++) {
           const signX = (i * 900 + 400) - (cameraX * 0.45);
-          if (signX > -250 && signX < canvas.width + 100) {
+          if (signX > -250 && signX < GAME_W + 100) {
             ctx.fillStyle = '#0f172a';
             ctx.fillRect(signX, 100, 240, 48);
             ctx.strokeStyle = frameCount % 30 < 15 ? '#ec4899' : '#38bdf8';
@@ -1588,22 +1804,37 @@
 
       // Señalética al Inicio del Nivel
       if (currentLevel === 1) {
-        // Cartel de mostrador de Heladería Las Malvinas
+        // Cartel del Dique Los Sauces - Heladería Las Malvinas
         ctx.fillStyle = '#0f172a';
         ctx.fillRect(25, 290, 6, 90);
-        ctx.fillStyle = '#d81b60';
-        ctx.fillRect(10, 262, 175, 34);
+        ctx.fillStyle = '#0284c7';
+        ctx.fillRect(10, 262, 185, 34);
         ctx.strokeStyle = '#ffffff';
         ctx.lineWidth = 1.8;
-        ctx.strokeRect(12, 264, 171, 30);
+        ctx.strokeRect(12, 264, 181, 30);
         ctx.fillStyle = '#ffffff';
         ctx.font = '7.5px ' + PIXEL_FONT;
-        ctx.fillText('📍 HELADERÍA LAS MALVINAS', 18, 277);
+        ctx.fillText('📍 DIQUE LOS SAUCES — LA RIOJA', 18, 277);
         ctx.fillStyle = '#fef08a';
         ctx.font = '6px ' + PIXEL_FONT;
-        ctx.fillText('MOSTRADOR PRINCIPAL — ¡CORRÉ Y DISPARÁ ❄️!', 18, 288);
+        ctx.fillText('HELADERÍA LAS MALVINAS — ¡CORRÉ Y DISPARÁ ❄️!', 18, 288);
+      } else if (currentLevel === 2) {
+        // Cartel vial Parque de la Ciudad - Superdomo
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(25, 290, 6, 90);
+        ctx.fillStyle = '#1e3a8a';
+        ctx.fillRect(10, 262, 195, 34);
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.8;
+        ctx.strokeRect(12, 264, 191, 30);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '7.5px ' + PIXEL_FONT;
+        ctx.fillText('📍 PARQUE DE LA CIUDAD — SUPERDOMO', 18, 277);
+        ctx.fillStyle = '#fef08a';
+        ctx.font = '6px ' + PIXEL_FONT;
+        ctx.fillText('LA RIOJA NOCTURNA — ¡SALVÁ EL DULCE DE LECHE!', 18, 288);
       } else {
-        // Cartel vial urbano clásico argentino
+        // Cartel vial urbano clásico argentino (Nivel 3)
         ctx.fillStyle = '#334155';
         ctx.fillRect(25, 295, 5, 85);
         ctx.fillStyle = '#0369a1';
@@ -1622,7 +1853,7 @@
       // ==============================================================
       // RENDERIZADO VISUAL DE POZOS Y CAÍDAS AL VACÍO (INEQUÍVOCO)
       // Detecta huecos entre plataformas de suelo y dibuja abismo, púas,
-      // carteles de alerta reflectivos y conos con balizas titilantes.
+      // franjas reflectivas de seguridad y conos con balizas titilantes.
       // ==============================================================
       const groundPlats = platforms.filter(p => p.type === 'ground').sort((a, b) => a.x - b.x);
       for (let i = 0; i < groundPlats.length - 1; i++) {
@@ -1635,18 +1866,18 @@
           const pitY = g1.y;
 
           // 1. Fondo de abismo oscuro con degradado hacia peligro rojo
-          const pitGrad = ctx.createLinearGradient(0, pitY, 0, canvas.height);
+          const pitGrad = ctx.createLinearGradient(0, pitY, 0, GAME_H);
           pitGrad.addColorStop(0, '#05070e');
           pitGrad.addColorStop(0.35, '#180308');
           pitGrad.addColorStop(0.8, '#450a0a');
           pitGrad.addColorStop(1, '#7f1d1d');
           ctx.fillStyle = pitGrad;
-          ctx.fillRect(pitX, pitY, pitW, canvas.height - pitY + 40);
+          ctx.fillRect(pitX, pitY, pitW, GAME_H - pitY + 40);
 
           // Líneas verticales luminosas de corte lateral
           ctx.fillStyle = '#ef4444';
-          ctx.fillRect(pitX - 2, pitY, 3, canvas.height - pitY);
-          ctx.fillRect(pitEndX - 1, pitY, 3, canvas.height - pitY);
+          ctx.fillRect(pitX - 2, pitY, 3, GAME_H - pitY);
+          ctx.fillRect(pitEndX - 1, pitY, 3, GAME_H - pitY);
 
           // 2. Púas de peligro puntiagudas en el fondo del pozo
           const spikeW = 12;
@@ -1657,33 +1888,15 @@
           for (let s = 0; s < spikeCount; s++) {
             const sx = pitX + s * spikeW;
             ctx.beginPath();
-            ctx.moveTo(sx, canvas.height);
-            ctx.lineTo(sx + spikeW / 2, canvas.height - 18);
-            ctx.lineTo(sx + spikeW, canvas.height);
+            ctx.moveTo(sx, GAME_H);
+            ctx.lineTo(sx + spikeW / 2, GAME_H - 18);
+            ctx.lineTo(sx + spikeW, GAME_H);
             ctx.closePath();
             ctx.fill();
             ctx.stroke();
           }
 
-          // 3. Cartel flotante reflectivo animado "⚠️ ¡POZO! ¡SALTÁ!"
-          const signW = 104;
-          const signH = 26;
-          const signX = pitX + (pitW - signW) / 2;
-          const signY = pitY - 38 + Math.sin(frameCount * 0.1) * 3;
-          ctx.fillStyle = 'rgba(0,0,0,0.55)';
-          ctx.fillRect(signX + 2, signY + 2, signW, signH);
-          ctx.fillStyle = '#facc15';
-          ctx.fillRect(signX, signY, signW, signH);
-          ctx.strokeStyle = '#000000';
-          ctx.lineWidth = 2;
-          ctx.strokeRect(signX, signY, signW, signH);
-          ctx.fillStyle = '#000000';
-          ctx.font = '7.5px ' + PIXEL_FONT;
-          ctx.textAlign = 'center';
-          ctx.fillText('⚠️ ¡POZO! ¡SALTÁ! ⬆', signX + signW / 2, signY + 16);
-          ctx.textAlign = 'left';
-
-          // 4. Franjas diagonales de peligro reflectivas amarillo y negro en el filo antes de caer
+          // 3. Franjas diagonales de peligro reflectivas amarillo y negro en el filo antes de caer
           const stripeW = 40;
           ctx.save();
           ctx.beginPath();
@@ -1779,168 +1992,138 @@
 
           if (currentLevel === 1) {
             // ==============================================================
-            // MOSTRADOR HELADERO LAS MALVINAS (Interior del Local)
-            // Mármol Carrara + Vitrina Refrigerada con Bachas de Helado + Microcemento
+            // COSTANERA DEL DIQUE DE LOS SAUCES (PASEO PEATONAL DE PIEDRA)
+            // Lajas de granito riojano, cordón de contención y muro lacustre
             // ==============================================================
 
-            // 1. MESADA SUPERIOR DE MÁRMOL BLANCO CARRARA (16px: gy a gy + 16)
-            const marbleGrad = ctx.createLinearGradient(0, gy, 0, gy + 16);
-            marbleGrad.addColorStop(0, '#ffffff');
-            marbleGrad.addColorStop(0.3, '#f8fafc');
-            marbleGrad.addColorStop(0.85, '#e2e8f0');
-            marbleGrad.addColorStop(1, '#cbd5e1');
-            ctx.fillStyle = marbleGrad;
+            // 1. SUPERFICIE SUPERIOR PEATONAL (Lajas de piedra clara: gy a gy + 16)
+            const stoneWalkGrad = ctx.createLinearGradient(0, gy, 0, gy + 16);
+            stoneWalkGrad.addColorStop(0, '#e7d9c6');    // Tono piedra arena soleada
+            stoneWalkGrad.addColorStop(0.4, '#d8c5ad');
+            stoneWalkGrad.addColorStop(1, '#bba589');    // Base de la laja
+            ctx.fillStyle = stoneWalkGrad;
             ctx.fillRect(gx, gy, gw, 16);
 
-            // Vetitas de mármol grisáceas
-            ctx.strokeStyle = 'rgba(148, 163, 184, 0.4)';
-            ctx.lineWidth = 1;
-            for (let vx = gx + 25; vx < gx + gw; vx += 70) {
+            // Juntas de baldosas de piedra / lajas cada 48px
+            ctx.strokeStyle = 'rgba(120, 95, 70, 0.45)';
+            ctx.lineWidth = 1.2;
+            for (let bx = gx + 24; bx < gx + gw; bx += 48) {
               ctx.beginPath();
-              ctx.moveTo(vx, gy + 3);
-              ctx.lineTo(vx + 16, gy + 9);
-              ctx.lineTo(vx + 32, gy + 13);
+              ctx.moveTo(bx, gy);
+              ctx.lineTo(bx, gy + 15);
               ctx.stroke();
             }
 
-            // Borde biselado de acero inoxidable
-            ctx.fillStyle = '#94a3b8';
-            ctx.fillRect(gx, gy + 14, gw, 2.5);
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(gx, gy + 14, gw, 1);
+            // Borde biselado de remate de piedra
+            ctx.fillStyle = '#9c8366';
+            ctx.fillRect(gx, gy + 14, gw, 2);
+            ctx.fillStyle = '#f5ede2';
+            ctx.fillRect(gx, gy + 1, gw, 1.2); // Brillo de sol en el canto superior
 
-            // 2. VITRINA REFRIGERADA EXHIBIDORA DE HELADOS (36px: gy + 16 a gy + 52)
-            ctx.fillStyle = '#64748b';
-            ctx.fillRect(gx, gy + 16, gw, 3);
-            ctx.fillStyle = '#334155';
-            ctx.fillRect(gx, gy + 19, gw, 33);
+            // 2. CORDÓN DE CONTENCIÓN DEL PASEO (12px: gy + 16 a gy + 28)
+            const curbGrad = ctx.createLinearGradient(0, gy + 16, 0, gy + 28);
+            curbGrad.addColorStop(0, '#8c765c');
+            curbGrad.addColorStop(1, '#675540');
+            ctx.fillStyle = curbGrad;
+            ctx.fillRect(gx, gy + 16, gw, 12);
 
-            // Bachas de helado artesanal exhibidas en fila continua (cada 42px)
-            const tubFlavors = [
-              { name: 'Dulce de Leche', c1: '#c2410c', c2: '#9a3412', swirl: '#fed7aa' },
-              { name: 'Frutilla al Agua', c1: '#f43f5e', c2: '#be123c', swirl: '#fecdd3' },
-              { name: 'Chocolate Malvinas', c1: '#451a03', c2: '#290e02', swirl: '#78350f' },
-              { name: 'Menta Granizada', c1: '#86efac', c2: '#4ade80', chips: true },
-              { name: 'Limón', c1: '#fef08a', c2: '#facc15' },
-              { name: 'Banana Split', c1: '#fbbf24', c2: '#d97706', swirl: '#451a03' },
-              { name: 'Crema Americana', c1: '#fefce8', c2: '#f1f5f9' },
-              { name: 'Tramontana', c1: '#f8fafc', c2: '#e2e8f0', swirl: '#c2410c' }
-            ];
+            // 3. MURO DE CANTERÍA / PIRCAS DEL DIQUE (gy + 28 a gy + gh)
+            const wallGrad = ctx.createLinearGradient(0, gy + 28, 0, gy + gh);
+            wallGrad.addColorStop(0, '#594939');
+            wallGrad.addColorStop(0.6, '#3d3226');
+            wallGrad.addColorStop(1, '#241e17');
+            ctx.fillStyle = wallGrad;
+            ctx.fillRect(gx, gy + 28, gw, gh - 28);
 
-            const tubW = 34;
-            const tubH = 24;
-            for (let bx = gx + 8; bx < gx + gw - tubW; bx += 42) {
-              const fIdx = Math.floor((bx - gx) / 42) % tubFlavors.length;
-              const flav = tubFlavors[fIdx];
-              const by = gy + 24;
-
-              ctx.fillStyle = '#94a3b8';
-              ctx.fillRect(bx - 1, by - 1, tubW + 2, tubH + 2);
-              ctx.fillStyle = '#475569';
-              ctx.fillRect(bx, by, tubW, tubH);
-
-              ctx.fillStyle = flav.c1;
+            // Bloques de piedra pirca trabados
+            ctx.strokeStyle = 'rgba(25, 20, 15, 0.55)';
+            ctx.lineWidth = 1.5;
+            for (let row = 0; row < 2; row++) {
+              const ry = gy + 28 + row * 18;
               ctx.beginPath();
-              ctx.ellipse(bx + tubW / 2, by + 8, tubW / 2 - 2, 7, 0, 0, Math.PI * 2);
-              ctx.fill();
-              ctx.fillStyle = flav.c2;
-              ctx.fillRect(bx + 2, by + 8, tubW - 4, tubH - 9);
-
-              if (flav.swirl) {
-                ctx.strokeStyle = flav.swirl;
-                ctx.lineWidth = 2;
+              ctx.moveTo(gx, ry);
+              ctx.lineTo(gx + gw, ry);
+              ctx.stroke();
+              const offset = (row % 2) * 36;
+              for (let rx = gx + offset; rx < gx + gw; rx += 72) {
                 ctx.beginPath();
-                ctx.moveTo(bx + 4, by + 8);
-                ctx.quadraticCurveTo(bx + tubW / 2, by + 4, bx + tubW - 4, by + 9);
+                ctx.moveTo(rx, ry);
+                ctx.lineTo(rx, ry + 18);
                 ctx.stroke();
               }
-              if (flav.chips) {
-                ctx.fillStyle = '#3b0764';
-                ctx.fillRect(bx + 6, by + 6, 2.5, 2.5);
-                ctx.fillRect(bx + 14, by + 10, 2.5, 2.5);
-                ctx.fillRect(bx + 22, by + 7, 2.5, 2.5);
-              }
             }
 
-            // Cristal frontal con reflejos diagonales
-            ctx.fillStyle = 'rgba(186, 230, 253, 0.18)';
-            ctx.fillRect(gx, gy + 19, gw, 33);
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.28)';
-            for (let rx = gx + 20; rx < gx + gw; rx += 140) {
-              ctx.beginPath();
-              ctx.moveTo(rx, gy + 19);
-              ctx.lineTo(rx + 28, gy + 19);
-              ctx.lineTo(rx + 8, gy + 52);
-              ctx.lineTo(rx - 20, gy + 52);
-              ctx.closePath();
-              ctx.fill();
+            // Musgo y brotes verdes naturales entre las lajas de piedra del Dique
+            ctx.fillStyle = '#16a34a';
+            for (let mx = gx + 35; mx < gx + gw; mx += 140) {
+              ctx.fillRect(mx, gy + 13, 8, 3);
+              ctx.fillRect(mx + 2, gy + 11, 4, 2);
             }
 
-            // Marco inferior de acero inoxidable
-            ctx.fillStyle = '#64748b';
-            ctx.fillRect(gx, gy + 52, gw, 2.5);
+            // Detalle costanera: Bolardos / farolitos náuticos bajos cada 320px
+            for (let bx = gx + 110; bx < gx + gw - 60; bx += 320) {
+              ctx.fillStyle = '#1e293b';
+              ctx.fillRect(bx, gy - 18, 8, 18);
+              ctx.fillStyle = '#334155';
+              ctx.fillRect(bx - 2, gy - 21, 12, 3);
+              ctx.fillStyle = '#fef08a';
+              ctx.fillRect(bx + 1, gy - 16, 6, 7);
+            }
+          } else if (currentLevel === 2) {
+            // ==============================================================
+            // NIVEL 2: PASEO PEATONAL DEL PARQUE DE LA CIUDAD / SUPERDOMO
+            // Baldosas modernas de parque urbano, cordón de hormigón y césped
+            // ==============================================================
+            const parkWalkGrad = ctx.createLinearGradient(0, gy, 0, gy + 16);
+            parkWalkGrad.addColorStop(0, '#64748b');    // Cemento claro de parque
+            parkWalkGrad.addColorStop(0.4, '#475569');
+            parkWalkGrad.addColorStop(1, '#334155');
+            ctx.fillStyle = parkWalkGrad;
+            ctx.fillRect(gx, gy, gw, 16);
 
-            // 3. FRENTE INFERIOR DE MICROCEMENTO ARQUITECTÓNICO (gy + 54 a gy + gh)
-            const cementGrad = ctx.createLinearGradient(0, gy + 54, 0, gy + gh);
-            cementGrad.addColorStop(0, '#9ca3af');
-            cementGrad.addColorStop(0.7, '#6b7280');
-            cementGrad.addColorStop(1, '#4b5563');
-            ctx.fillStyle = cementGrad;
-            ctx.fillRect(gx, gy + 54, gw, gh - 54);
-
-            // Juntas de paneles de cemento cada 180px
-            ctx.strokeStyle = 'rgba(55, 65, 81, 0.5)';
-            ctx.lineWidth = 1.5;
-            for (let px = gx + 180; px < gx + gw; px += 180) {
+            // Juntas de baldosones cuadrados del parque cada 36px
+            ctx.strokeStyle = 'rgba(15, 23, 42, 0.45)';
+            ctx.lineWidth = 1.2;
+            for (let bx = gx + 18; bx < gx + gw; bx += 36) {
               ctx.beginPath();
-              ctx.moveTo(px, gy + 54);
-              ctx.lineTo(px, gy + gh - 4);
+              ctx.moveTo(bx, gy);
+              ctx.lineTo(bx, gy + 15);
               ctx.stroke();
             }
 
-            // Zócalo inferior empotrado
+            // Borde biselado superior
+            ctx.fillStyle = '#94a3b8';
+            ctx.fillRect(gx, gy + 1, gw, 1.2);
             ctx.fillStyle = '#1e293b';
-            ctx.fillRect(gx, gy + gh - 4, gw, 4);
+            ctx.fillRect(gx, gy + 15, gw, 2);
 
-            // 4. ACCESORIOS GASTRONÓMICOS SOBRE EL MOSTRADOR (cada 340px)
-            for (let ax = gx + 120; ax < gx + gw - 80; ax += 340) {
-              const propType = Math.floor((ax - gx) / 340) % 3;
+            // Cimientos del parque
+            const curbParkGrad = ctx.createLinearGradient(0, gy + 17, 0, gy + gh);
+            curbParkGrad.addColorStop(0, '#1e293b');
+            curbParkGrad.addColorStop(0.5, '#0f172a');
+            curbParkGrad.addColorStop(1, '#020617');
+            ctx.fillStyle = curbParkGrad;
+            ctx.fillRect(gx, gy + 17, gw, gh - 17);
 
-              if (propType === 0) {
-                // Balanza electrónica digital de precios
-                ctx.fillStyle = '#ffffff';
-                ctx.fillRect(ax, gy - 20, 28, 20);
-                ctx.fillStyle = '#cbd5e1';
-                ctx.fillRect(ax - 2, gy - 22, 32, 4);
-                ctx.fillStyle = '#0f172a';
-                ctx.fillRect(ax + 3, gy - 16, 22, 10);
-                ctx.fillStyle = '#4ade80';
-                ctx.font = '5.5px ' + PIXEL_FONT;
-                ctx.fillText('1.000', ax + 4, gy - 8);
-              } else if (propType === 1) {
-                // Servilletero cromado de acero con servilletas
-                ctx.fillStyle = '#cbd5e1';
-                ctx.fillRect(ax, gy - 16, 18, 16);
-                ctx.fillStyle = '#ffffff';
-                ctx.fillRect(ax + 3, gy - 20, 12, 6);
-                ctx.fillStyle = '#ec4899';
-                ctx.fillRect(ax + 7, gy - 10, 4, 4);
-              } else {
-                // Torre acrílica con cucuruchos apilados
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
-                ctx.fillRect(ax, gy - 28, 14, 28);
-                ctx.strokeStyle = '#94a3b8';
-                ctx.lineWidth = 1;
-                ctx.strokeRect(ax, gy - 28, 14, 28);
-                ctx.fillStyle = '#d97706';
-                for (let c = 0; c < 4; c++) {
-                  ctx.fillRect(ax + 2, gy - 8 - c * 6, 10, 4);
-                }
-              }
+            // Césped verde del Parque de la Ciudad
+            ctx.fillStyle = '#16a34a';
+            for (let px = gx + 10; px < gx + gw - 10; px += 45) {
+              ctx.fillRect(px, gy + 13, 8, 3);
+              ctx.fillRect(px + 2, gy + 11, 4, 2);
+            }
+
+            // Luminarias baliza de parque LED bajas cada 280px
+            for (let lx = gx + 90; lx < gx + gw - 60; lx += 280) {
+              ctx.fillStyle = '#334155';
+              ctx.fillRect(lx, gy - 16, 6, 16);
+              ctx.fillStyle = '#cbd5e1';
+              ctx.fillRect(lx - 2, gy - 18, 10, 3);
+              ctx.fillStyle = '#fef08a';
+              ctx.fillRect(lx + 1, gy - 14, 4, 6);
             }
           } else {
             // ==============================================================
-            // CALLE URBANA NOCTURNA: Vereda + Cordón + Asfalto Vial
+            // NIVEL 3: CALLE URBANA NOCTURNA: Vereda + Cordón + Asfalto Vial
             // ==============================================================
             const sidewalkGrad = ctx.createLinearGradient(0, gy, 0, gy + 16);
             sidewalkGrad.addColorStop(0, '#334155');
@@ -2004,111 +2187,240 @@
           }
 
         } else if (plat.type === 'pipe') {
-          // ==============================================================
-          // TACHO BLANCO DE HELADOS CON LOGO OFICIAL "LAS MALVINAS"
-          // ==============================================================
           const tx = plat.x;
           const ty = plat.y;
           const tw = plat.w;
           const th = plat.h;
 
-          // 1. Sombra suave elíptica sobre el asfalto
-          ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
-          ctx.beginPath();
-          ctx.ellipse(tx + tw / 2, ty + th + 1, tw / 2 + 5, 5, 0, 0, Math.PI * 2);
-          ctx.fill();
+          if (currentLevel === 1) {
+            // ==============================================================
+            // NIVEL 1: PIEDRA NATURAL / ROCA DE MONTAÑA (DIQUE LOS SAUCES)
+            // Reemplaza los tachos por grandes rocas de granito riojano
+            // ==============================================================
 
-          // 2. Cuerpo del tacho blanco de helado (cilindro térmico satinado)
-          const tubGrad = ctx.createLinearGradient(tx, 0, tx + tw, 0);
-          tubGrad.addColorStop(0, '#e2e8f0');       // Sombra izquierda
-          tubGrad.addColorStop(0.18, '#ffffff');    // Brillo blanco satinado
-          tubGrad.addColorStop(0.65, '#f8fafc');     // Blanco cuerpo
-          tubGrad.addColorStop(0.9, '#e2e8f0');     // Transición
-          tubGrad.addColorStop(1, '#94a3b8');       // Sombra derecha
-          ctx.fillStyle = tubGrad;
-
-          // Cuerpo cilíndrico con base ligeramente redondeada
-          ctx.beginPath();
-          ctx.roundRect(tx + 2, ty + 16, tw - 4, th - 16, [0, 0, 6, 6]);
-          ctx.fill();
-          ctx.strokeStyle = '#94a3b8';
-          ctx.lineWidth = 1.5;
-          ctx.stroke();
-
-          // 3. Nervaduras / anillos de refuerzo horizontales del tacho
-          ctx.strokeStyle = 'rgba(148, 163, 184, 0.65)';
-          ctx.lineWidth = 1.5;
-          ctx.beginPath();
-          ctx.moveTo(tx + 3, ty + 28);
-          ctx.lineTo(tx + tw - 3, ty + 28);
-          ctx.moveTo(tx + 3, ty + th - 12);
-          ctx.lineTo(tx + tw - 3, ty + th - 12);
-          ctx.stroke();
-
-          // 4. Borde superior / Tapa del tacho (donde pisa el jugador)
-          const rimGrad = ctx.createLinearGradient(tx, 0, tx + tw, 0);
-          rimGrad.addColorStop(0, '#e2e8f0');
-          rimGrad.addColorStop(0.25, '#ffffff');
-          rimGrad.addColorStop(1, '#cbd5e1');
-          ctx.fillStyle = rimGrad;
-          ctx.beginPath();
-          ctx.roundRect(tx - 3, ty, tw + 6, 16, [5, 5, 3, 3]);
-          ctx.fill();
-          ctx.strokeStyle = '#94a3b8';
-          ctx.lineWidth = 1.5;
-          ctx.stroke();
-
-          // Detalle fucsia distintivo en la tapa
-          ctx.fillStyle = '#ec4899';
-          ctx.fillRect(tx + 1, ty + 4, tw - 2, 3.5);
-
-          // Manijas laterales metálicas de balde
-          ctx.strokeStyle = '#94a3b8';
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.arc(tx + 1, ty + 23, 4.5, Math.PI * 0.5, Math.PI * 1.5);
-          ctx.stroke();
-          ctx.beginPath();
-          ctx.arc(tx + tw - 1, ty + 23, 4.5, -Math.PI * 0.5, Math.PI * 0.5);
-          ctx.stroke();
-
-          // 5. ETIQUETA / LOGO OFICIAL "LAS MALVINAS" EN EL FRENTE DEL TACHO
-          const logoSize = Math.min(36, th - 36);
-          const logoX = tx + (tw - logoSize) / 2;
-          const logoY = ty + 33;
-
-          // Placa fucsia cuadrada como el logo subido por el cliente
-          ctx.fillStyle = '#e6007e';
-          ctx.beginPath();
-          ctx.roundRect(logoX - 2, logoY - 2, logoSize + 4, logoSize + 4, 4);
-          ctx.fill();
-          ctx.strokeStyle = '#ffffff';
-          ctx.lineWidth = 1.2;
-          ctx.stroke();
-
-          // Dibujar el logo oficial (imagen PNG o fallback vectorial)
-          if (logoMalvinasImg && logoMalvinasImg.complete && logoMalvinasImg.naturalWidth > 0) {
-            ctx.drawImage(logoMalvinasImg, logoX, logoY, logoSize, logoSize);
-          } else {
-            // Fallback vectorial idéntico
-            ctx.fillStyle = '#fff';
-            // Remolino de helado
+            // 1. Sombra suave en la base de la roca sobre la costanera
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.42)';
             ctx.beginPath();
-            ctx.arc(logoX + 7, logoY + logoSize / 2, 4, 0, Math.PI * 2);
+            ctx.ellipse(tx + tw / 2, ty + th + 1, tw / 2 + 7, 6, 0, 0, Math.PI * 2);
             ctx.fill();
-            // Texto
-            ctx.font = '6px ' + PIXEL_FONT;
-            ctx.fillText('Las', logoX + 13, logoY + 12);
-            ctx.fillText('Malvinas', logoX + 12, logoY + 22);
-          }
 
-          // 6. Vapor / frío escarchado que sale del tacho de helado
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-          const steamOff = Math.sin(frameCount * 0.08 + tx) * 3;
-          ctx.beginPath();
-          ctx.arc(tx + tw * 0.35 + steamOff, ty - 5, 3, 0, Math.PI * 2);
-          ctx.arc(tx + tw * 0.65 - steamOff, ty - 7, 4, 0, Math.PI * 2);
-          ctx.fill();
+            // 2. Silueta base y cuerpo de la roca (polígono rocoso facetado)
+            ctx.save();
+            ctx.beginPath();
+            // Laja superior plana para soporte firme del jugador
+            ctx.moveTo(tx, ty);
+            ctx.lineTo(tx + tw, ty);
+            // Lado derecho angular
+            ctx.lineTo(tx + tw + 4, ty + 18);
+            ctx.lineTo(tx + tw + 2, ty + th * 0.55);
+            ctx.lineTo(tx + tw + 5, ty + th - 10);
+            ctx.lineTo(tx + tw - 2, ty + th);
+            // Base
+            ctx.lineTo(tx + 2, ty + th);
+            // Lado izquierdo angular
+            ctx.lineTo(tx - 4, ty + th - 12);
+            ctx.lineTo(tx - 3, ty + th * 0.45);
+            ctx.lineTo(tx - 5, ty + 16);
+            ctx.closePath();
+
+            // Degradado principal de roca de granito (sol desde arriba a la izquierda)
+            const rockGrad = ctx.createLinearGradient(tx, ty, tx + tw, ty + th);
+            rockGrad.addColorStop(0, '#78716c');    // Mineral cálido iluminado
+            rockGrad.addColorStop(0.35, '#57534e'); // Granito medio
+            rockGrad.addColorStop(0.75, '#44403c'); // Sombra de piedra
+            rockGrad.addColorStop(1, '#292524');    // Base en sombra
+            ctx.fillStyle = rockGrad;
+            ctx.fill();
+
+            // Contorno oscuro natural de la roca
+            ctx.strokeStyle = '#1c1917';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // 3. Facetas angulares de corte de cantera (luz y sombra 3D)
+            // Faceta iluminada superior izquierda
+            ctx.fillStyle = '#a8a29e';
+            ctx.beginPath();
+            ctx.moveTo(tx, ty);
+            ctx.lineTo(tx + tw * 0.45, ty);
+            ctx.lineTo(tx + tw * 0.35, ty + 24);
+            ctx.lineTo(tx - 3, ty + 18);
+            ctx.closePath();
+            ctx.fill();
+
+            // Faceta clara central
+            ctx.fillStyle = '#857d77';
+            ctx.beginPath();
+            ctx.moveTo(tx + tw * 0.45, ty);
+            ctx.lineTo(tx + tw, ty);
+            ctx.lineTo(tx + tw * 0.7, ty + 28);
+            ctx.lineTo(tx + tw * 0.35, ty + 24);
+            ctx.closePath();
+            ctx.fill();
+
+            // Faceta en sombra derecha
+            ctx.fillStyle = '#292524';
+            ctx.beginPath();
+            ctx.moveTo(tx + tw, ty);
+            ctx.lineTo(tx + tw + 4, ty + 18);
+            ctx.lineTo(tx + tw + 2, ty + th * 0.55);
+            ctx.lineTo(tx + tw * 0.65, ty + th * 0.5);
+            ctx.lineTo(tx + tw * 0.7, ty + 28);
+            ctx.closePath();
+            ctx.fill();
+
+            // Grietas / fisuras profundas en la roca
+            ctx.strokeStyle = '#1c1917';
+            ctx.lineWidth = 1.8;
+            ctx.beginPath();
+            ctx.moveTo(tx + tw * 0.35, ty + 24);
+            ctx.lineTo(tx + tw * 0.48, ty + th * 0.52);
+            ctx.lineTo(tx + tw * 0.32, ty + th * 0.76);
+            ctx.lineTo(tx + tw * 0.5, ty + th - 8);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(tx + tw * 0.7, ty + 28);
+            ctx.lineTo(tx + tw * 0.62, ty + th * 0.45);
+            ctx.stroke();
+
+            // 4. Borde superior pisable (Laja superior plana para el salto de Analía)
+            const ledgeGrad = ctx.createLinearGradient(tx, ty, tx, ty + 7);
+            ledgeGrad.addColorStop(0, '#d6d3d1');
+            ledgeGrad.addColorStop(1, '#a8a29e');
+            ctx.fillStyle = ledgeGrad;
+            ctx.fillRect(tx, ty, tw, 6);
+            ctx.fillStyle = '#f5f5f4';
+            ctx.fillRect(tx + 2, ty, tw - 4, 1.5); // Brillo solar superior
+
+            // 5. Manchas de musgo verde natural del lago
+            ctx.fillStyle = '#15803d';
+            ctx.beginPath();
+            ctx.ellipse(tx + 8, ty + 5, 8, 3, 0, 0, Math.PI * 2);
+            ctx.ellipse(tx + 20, ty + 6, 6, 2.5, 0, 0, Math.PI * 2);
+            ctx.fill();
+            // Musgo en fisura media
+            ctx.fillStyle = '#22c55e';
+            ctx.fillRect(tx + tw * 0.36, ty + th * 0.50, 6, 4);
+            ctx.fillRect(tx + tw * 0.34, ty + th * 0.53, 9, 3);
+            ctx.fillStyle = '#86efac';
+            ctx.fillRect(tx + tw * 0.37, ty + th * 0.51, 3, 2);
+
+            // Musgo en la base húmeda junto al suelo
+            ctx.fillStyle = '#166534';
+            ctx.beginPath();
+            ctx.ellipse(tx + tw * 0.3, ty + th - 3, 10, 3, 0, 0, Math.PI * 2);
+            ctx.ellipse(tx + tw * 0.75, ty + th - 4, 8, 3, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 6. Pequeño destello de escarcha / hielo en la cima
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
+            const sparkle = Math.sin(frameCount * 0.08 + tx) * 2;
+            ctx.fillRect(tx + tw * 0.65 + sparkle, ty - 2, 2.5, 2.5);
+
+            ctx.restore();
+          } else {
+            // ==============================================================
+            // NIVELES 2 Y 3: TACHO BLANCO DE HELADOS CON LOGO "LAS MALVINAS"
+            // ==============================================================
+            // 1. Sombra suave elíptica sobre el asfalto
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+            ctx.beginPath();
+            ctx.ellipse(tx + tw / 2, ty + th + 1, tw / 2 + 5, 5, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 2. Cuerpo del tacho blanco de helado (cilindro térmico satinado)
+            const tubGrad = ctx.createLinearGradient(tx, 0, tx + tw, 0);
+            tubGrad.addColorStop(0, '#e2e8f0');       // Sombra izquierda
+            tubGrad.addColorStop(0.18, '#ffffff');    // Brillo blanco satinado
+            tubGrad.addColorStop(0.65, '#f8fafc');     // Blanco cuerpo
+            tubGrad.addColorStop(0.9, '#e2e8f0');     // Transición
+            tubGrad.addColorStop(1, '#94a3b8');       // Sombra derecha
+            ctx.fillStyle = tubGrad;
+
+            // Cuerpo cilíndrico con base ligeramente redondeada
+            ctx.beginPath();
+            ctx.roundRect(tx + 2, ty + 16, tw - 4, th - 16, [0, 0, 6, 6]);
+            ctx.fill();
+            ctx.strokeStyle = '#94a3b8';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            // 3. Nervaduras / anillos de refuerzo horizontales del tacho
+            ctx.strokeStyle = 'rgba(148, 163, 184, 0.65)';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(tx + 3, ty + 28);
+            ctx.lineTo(tx + tw - 3, ty + 28);
+            ctx.moveTo(tx + 3, ty + th - 12);
+            ctx.lineTo(tx + tw - 3, ty + th - 12);
+            ctx.stroke();
+
+            // 4. Borde superior / Tapa del tacho (donde pisa el jugador)
+            const rimGrad = ctx.createLinearGradient(tx, 0, tx + tw, 0);
+            rimGrad.addColorStop(0, '#e2e8f0');
+            rimGrad.addColorStop(0.25, '#ffffff');
+            rimGrad.addColorStop(1, '#cbd5e1');
+            ctx.fillStyle = rimGrad;
+            ctx.beginPath();
+            ctx.roundRect(tx - 3, ty, tw + 6, 16, [5, 5, 3, 3]);
+            ctx.fill();
+            ctx.strokeStyle = '#94a3b8';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            // Detalle fucsia distintivo en la tapa
+            ctx.fillStyle = '#ec4899';
+            ctx.fillRect(tx + 1, ty + 4, tw - 2, 3.5);
+
+            // Manijas laterales metálicas de balde
+            ctx.strokeStyle = '#94a3b8';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(tx + 1, ty + 23, 4.5, Math.PI * 0.5, Math.PI * 1.5);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(tx + tw - 1, ty + 23, 4.5, -Math.PI * 0.5, Math.PI * 0.5);
+            ctx.stroke();
+
+            // 5. ETIQUETA / LOGO OFICIAL "LAS MALVINAS" EN EL FRENTE DEL TACHO
+            const logoSize = Math.min(36, th - 36);
+            const logoX = tx + (tw - logoSize) / 2;
+            const logoY = ty + 33;
+
+            // Placa fucsia cuadrada como el logo subido por el cliente
+            ctx.fillStyle = '#e6007e';
+            ctx.beginPath();
+            ctx.roundRect(logoX - 2, logoY - 2, logoSize + 4, logoSize + 4, 4);
+            ctx.fill();
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 1.2;
+            ctx.stroke();
+
+            // Dibujar el logo oficial (imagen PNG o fallback vectorial)
+            if (logoMalvinasImg && logoMalvinasImg.complete && logoMalvinasImg.naturalWidth > 0) {
+              ctx.drawImage(logoMalvinasImg, logoX, logoY, logoSize, logoSize);
+            } else {
+              // Fallback vectorial idéntico
+              ctx.fillStyle = '#fff';
+              // Remolino de helado
+              ctx.beginPath();
+              ctx.arc(logoX + 7, logoY + logoSize / 2, 4, 0, Math.PI * 2);
+              ctx.fill();
+              // Texto
+              ctx.font = '6px ' + PIXEL_FONT;
+              ctx.fillText('Las', logoX + 13, logoY + 12);
+              ctx.fillText('Malvinas', logoX + 12, logoY + 22);
+            }
+
+            // 6. Vapor / frío escarchado que sale del tacho de helado
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+            const steamOff = Math.sin(frameCount * 0.08 + tx) * 3;
+            ctx.beginPath();
+            ctx.arc(tx + tw * 0.35 + steamOff, ty - 5, 3, 0, Math.PI * 2);
+            ctx.arc(tx + tw * 0.65 - steamOff, ty - 7, 4, 0, Math.PI * 2);
+            ctx.fill();
+          }
 
         } else if (plat.type === 'brick') {
           // Plataforma urbana de ladrillos / marquesina
@@ -2147,7 +2459,7 @@
 
       // Dibujar Cucuruchos Recolectables
       for (const c of cones) {
-        if (c.collected) continue;
+        if (c.collected || c.hidden) continue;
         const bob = Math.sin(frameCount * 0.1 + c.x) * 4;
         // Cono
         ctx.fillStyle = '#d97706';
@@ -2168,40 +2480,103 @@
         ctx.fill();
       }
 
-      // Dibujar Súper Potes 1Kg (Power-Ups)
+      // Dibujar Premios de Bloques [?] (Súper Pote 1Kg y Cucurucho Sorpresa Dorado)
       for (const p of powerups) {
-        ctx.fillStyle = '#ec4899';
-        ctx.fillRect(p.x, p.y + 8, p.w, p.h - 8);
-        ctx.fillStyle = '#38bdf8';
-        ctx.fillRect(p.x - 2, p.y, p.w + 4, 10);
-        ctx.fillStyle = '#fff';
-        ctx.font = '7.5px ' + PIXEL_FONT;
-        ctx.fillText('1KG', p.x + 5, p.y + 24);
+        if (p.type === 'bonusCone') {
+          const cx = p.x + p.w / 2;
+          const cy = p.y + p.h / 2;
+          // Halo brillante dorado
+          ctx.save();
+          ctx.fillStyle = 'rgba(250, 204, 21, 0.28)';
+          ctx.beginPath();
+          ctx.arc(cx, cy - 2, 16 + Math.sin(frameCount * 0.18) * 2, 0, Math.PI * 2);
+          ctx.fill();
+          // Cono dorado
+          ctx.fillStyle = '#d97706';
+          ctx.beginPath();
+          ctx.moveTo(cx - 9, cy + 1);
+          ctx.lineTo(cx + 9, cy + 1);
+          ctx.lineTo(cx, cy + 16);
+          ctx.closePath();
+          ctx.fill();
+          // Doble bocha artesanal (frutilla + crema dorada)
+          ctx.fillStyle = '#ec4899';
+          ctx.beginPath();
+          ctx.arc(cx - 4, cy - 2, 7.5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#facc15';
+          ctx.beginPath();
+          ctx.arc(cx + 4, cy - 2, 7.5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#38bdf8';
+          ctx.beginPath();
+          ctx.arc(cx, cy - 9, 6.5, 0, Math.PI * 2);
+          ctx.fill();
+          // Brillo superior
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.arc(cx - 2, cy - 11, 2.2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        } else {
+          ctx.fillStyle = '#ec4899';
+          ctx.fillRect(p.x, p.y + 8, p.w, p.h - 8);
+          ctx.fillStyle = '#38bdf8';
+          ctx.fillRect(p.x - 2, p.y, p.w + 4, 10);
+          ctx.fillStyle = '#fff';
+          ctx.font = '7.5px ' + PIXEL_FONT;
+          ctx.fillText('1KG', p.x + 5, p.y + 24);
+        }
       }
 
-      // Dibujar Enemigos: Solcitos de Calor Riojano (45°C)
+      // Dibujar Enemigos: Solcitos de Calor Riojano (45°C -> 30°C -> 15°C al recibir copos)
       for (const en of enemies) {
         if (!en.alive) continue;
         const cx = en.x + en.w / 2;
         const cy = en.y + en.h / 2;
-        // Rayos / Aura de calor
-        ctx.fillStyle = en.type === 'flame' ? '#ef4444' : '#f97316';
+        const maxHp = en.maxHp || 3;
+        const curHp = typeof en.hp === 'number' ? en.hp : maxHp;
+        const isHit = en.hitTimer > 0;
+
+        // Rayos / Aura de calor (se vuelve helada al recibir impactos)
+        if (isHit) {
+          ctx.fillStyle = '#67e8f9';
+        } else if (curHp <= maxHp / 2) {
+          ctx.fillStyle = '#38bdf8';
+        } else {
+          ctx.fillStyle = en.type === 'flame' ? '#ef4444' : '#f97316';
+        }
         ctx.beginPath();
         ctx.arc(cx, cy, 19 + Math.sin(frameCount * 0.2) * 2, 0, Math.PI * 2);
         ctx.fill();
+
         // Cara del solcito
-        ctx.fillStyle = '#facc15';
+        ctx.fillStyle = isHit ? '#e0f2fe' : (curHp <= maxHp / 2 ? '#bae6fd' : '#facc15');
         ctx.beginPath();
         ctx.arc(cx, cy, 14, 0, Math.PI * 2);
         ctx.fill();
+
         // Ojos enojados
         ctx.fillStyle = '#0f172a';
         ctx.fillRect(cx - 7, cy - 4, 4, 4);
         ctx.fillRect(cx + 3, cy - 4, 4, 4);
-        // Etiqueta 45°
-        ctx.fillStyle = '#fff';
+
+        // Barra pequeña de vida cuando ya recibió daño
+        if (curHp < maxHp) {
+          const barW = 30;
+          const barX = cx - barW / 2;
+          const barY = en.y - 16;
+          ctx.fillStyle = 'rgba(15, 23, 42, 0.75)';
+          ctx.fillRect(barX - 1, barY - 1, barW + 2, 6);
+          ctx.fillStyle = curHp <= maxHp / 2 ? '#38bdf8' : '#facc15';
+          ctx.fillRect(barX, barY, Math.round((curHp / maxHp) * barW), 4);
+        }
+
+        // Etiqueta de temperatura que baja con cada copo o pisotón
+        const tempLabel = Math.max(10, Math.round((curHp / maxHp) * 45)) + '°C';
+        ctx.fillStyle = curHp < maxHp ? '#bae6fd' : '#fff';
         ctx.font = '7px ' + PIXEL_FONT;
-        ctx.fillText('45°C', en.x + 7, en.y - 4);
+        ctx.fillText(tempLabel, en.x + 7, en.y - 4);
       }
 
       // Dibujar Copos de Nieve Giratorios ❄️
@@ -2346,36 +2721,65 @@
 
         // Barra de salud superior del Boss
         ctx.fillStyle = '#0f172a';
-        ctx.fillRect(bx - 12, by - 26, boss.w + 24, 16);
-        ctx.strokeStyle = '#ef4444';
+        ctx.fillRect(bx - 18, by - 36, boss.w + 36, 16);
+        ctx.strokeStyle = boss.enraged ? '#f97316' : '#ef4444';
         ctx.lineWidth = 1.6;
-        ctx.strokeRect(bx - 12, by - 26, boss.w + 24, 16);
+        ctx.strokeRect(bx - 18, by - 36, boss.w + 36, 16);
 
         const healthPct = Math.max(0, boss.hp / boss.maxHp);
         ctx.fillStyle = healthPct > 0.6 ? '#22c55e' : (healthPct > 0.3 ? '#facc15' : '#ef4444');
-        ctx.fillRect(bx - 10, by - 24, (boss.w + 20) * healthPct, 12);
+        ctx.fillRect(bx - 16, by - 34, (boss.w + 32) * healthPct, 12);
 
         ctx.fillStyle = '#ffffff';
-        ctx.font = '7px ' + PIXEL_FONT;
+        ctx.font = '6.5px ' + PIXEL_FONT;
         ctx.textAlign = 'center';
-        ctx.fillText(`MAESTRO INDUSTRIAL HP: ${boss.hp}/${boss.maxHp}`, bx + boss.w / 2, by - 15);
+        ctx.fillText(`ROBOT HP: ${boss.hp}/${boss.maxHp}`, bx + boss.w / 2, by - 25);
+
+        // Indicador brillante del punto débil arriba de la cabeza
+        const bobArrow = Math.sin(frameCount * 0.2) * 2.5;
+        ctx.fillStyle = '#facc15';
+        ctx.font = '6px ' + PIXEL_FONT;
+        ctx.fillText('▼ CABEZA ▼', bx + boss.w / 2, by - 9 + bobArrow);
         ctx.textAlign = 'left';
 
-        // Cuerpo robótico mecánico
-        ctx.fillStyle = isHit ? '#fca5a5' : '#64748b';
+        // Cuerpo robótico mecánico BLINDADO (costados metálicos reforzados)
+        if (boss.enraged) {
+          ctx.shadowColor = '#ef4444';
+          ctx.shadowBlur = 12;
+        }
+        ctx.fillStyle = isHit ? '#fca5a5' : (boss.enraged ? '#475569' : '#64748b');
         ctx.beginPath();
-        ctx.roundRect(bx, by + 26, boss.w, boss.h - 26, 8);
+        ctx.roundRect(bx, by + 28, boss.w, boss.h - 28, 8);
         ctx.fill();
-        ctx.strokeStyle = '#334155';
-        ctx.lineWidth = 2.5;
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = '#94a3b8';
+        ctx.lineWidth = 3;
         ctx.stroke();
 
-        // Cabeza robótica
+        // Placas metálicas laterales (indican que los costados están blindados)
+        ctx.fillStyle = '#334155';
+        ctx.fillRect(bx + 3, by + 36, 10, boss.h - 46);
+        ctx.fillRect(bx + boss.w - 13, by + 36, 10, boss.h - 46);
+        ctx.fillStyle = '#cbd5e1';
+        ctx.fillRect(bx + 6, by + 42, 4, 4);
+        ctx.fillRect(bx + 6, by + boss.h - 20, 4, 4);
+        ctx.fillRect(bx + boss.w - 10, by + 42, 4, 4);
+        ctx.fillRect(bx + boss.w - 10, by + boss.h - 20, 4, 4);
+
+        // Cabeza robótica (PUNTO DÉBIL con cúpula brillante arriba)
+        ctx.fillStyle = isHit ? '#ffffff' : (boss.enraged ? '#dc2626' : '#f59e0b');
+        ctx.beginPath();
+        ctx.arc(bx + boss.w / 2, by + 4, 15, Math.PI, 0);
+        ctx.fill();
+        ctx.strokeStyle = '#fef08a';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
         ctx.fillStyle = isHit ? '#f87171' : '#475569';
-        ctx.fillRect(bx + 12, by, boss.w - 24, 26);
+        ctx.fillRect(bx + 12, by + 4, boss.w - 24, 24);
         // Visor luminoso
-        ctx.fillStyle = isHit ? '#ffffff' : (frameCount % 20 < 10 ? '#ef4444' : '#991b1b');
-        ctx.fillRect(bx + 18, by + 8, boss.w - 36, 9);
+        ctx.fillStyle = isHit ? '#ffffff' : (frameCount % 14 < 7 ? '#ef4444' : '#f97316');
+        ctx.fillRect(bx + 18, by + 11, boss.w - 36, 9);
 
         // Chimenea con humo industrial
         ctx.fillStyle = '#334155';
@@ -2439,52 +2843,50 @@
         ctx.save();
         const activeSprite = getAnaliaCurrentSprite();
         if (useHdSprite && activeSprite && activeSprite.complete) {
-          // Renderizado animado del Sprite HD de Analía (alta definición y suavizado)
+          // Renderizado animado del Sprite HD de Analía (Full HD, nítido y luminoso)
           const isMoving = Math.abs(player.vx) > 0.25;
-          const bobY = isMoving && player.grounded 
-            ? Math.abs(Math.sin(frameCount * 0.42)) * 3.0 
-            : Math.sin(frameCount * 0.12) * 1.5;
-          const tilt = !player.grounded ? (player.vy * 0.012) : (isMoving ? Math.sin(frameCount * 0.42) * 0.04 : 0);
-          
-          const drawH = 68;
-          const aspect = (activeSprite.naturalWidth && activeSprite.naturalHeight) 
-            ? (activeSprite.naturalWidth / activeSprite.naturalHeight) 
+          const bobY = isMoving && player.grounded
+            ? Math.abs(Math.sin(frameCount * 0.42)) * 2.6
+            : Math.sin(frameCount * 0.12) * 1.2;
+          const tilt = !player.grounded ? (player.vy * 0.011) : (isMoving ? Math.sin(frameCount * 0.42) * 0.035 : 0);
+
+          const drawH = 74;
+          const aspect = (activeSprite.naturalWidth && activeSprite.naturalHeight)
+            ? (activeSprite.naturalWidth / activeSprite.naturalHeight)
             : 0.72;
           const drawW = Math.round(drawH * aspect);
           const cx = player.x + player.w / 2;
           const cy = player.y + player.h - drawH / 2 - bobY + 2;
 
+          // Sombra suave de contacto en el suelo para destacar mejor a Analía
+          if (player.grounded) {
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.35)';
+            ctx.beginPath();
+            ctx.ellipse(cx, player.y + player.h + 1, 18, 4.5, 0, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
           ctx.translate(cx, cy);
           if (player.facing === -1) ctx.scale(-1, 1);
           ctx.rotate(tilt);
 
-          if (player.superMode) {
-            ctx.shadowColor = frameCount % 10 < 5 ? '#f472b6' : '#67e8f9';
-            ctx.shadowBlur = 14;
-          }
-          // Suavizado de imagen en alta calidad para evitar pixelado
-          ctx.imageSmoothingEnabled = true;
-          ctx.imageSmoothingQuality = 'high';
-          ctx.drawImage(activeSprite, -drawW / 2, -drawH / 2, drawW, drawH);
-          ctx.shadowBlur = 0;
-
-          // DIBUJAR A MALVI (Mascota Oficial — El Cucurucho con Lentes de Sol)
+          // 1. DIBUJAR A MALVI DETRÁS DE ANALÍA (separado del hombro para no tapar su silueta)
           ctx.save();
           const malviBob = Math.sin(frameCount * 0.16) * 3.5;
-          const malviX = -15;
-          const malviY = -12 + malviBob;
+          const malviX = -27;
+          const malviY = -17 + malviBob;
           ctx.translate(malviX, malviY);
 
-          // Aura mágica / helada de Malvi
           ctx.shadowColor = player.shootCooldown > 0 ? '#38bdf8' : '#ec4899';
-          ctx.shadowBlur = player.shootCooldown > 0 ? 14 : 7;
+          ctx.shadowBlur = player.shootCooldown > 0 ? 12 : 6;
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
 
           if (malviLoaded && malviSprite.complete && malviSprite.naturalWidth > 0) {
             const mW = 13;
-            const mH = (malviSprite.naturalHeight / malviSprite.naturalWidth) * mW; // ~39px
+            const mH = (malviSprite.naturalHeight / malviSprite.naturalWidth) * mW;
             ctx.drawImage(malviSprite, -mW / 2, -mH / 2, mW, mH);
           } else {
-            // Fallback procedimental si tarda en cargar
             ctx.fillStyle = '#f59e0b';
             ctx.beginPath();
             ctx.moveTo(0, 10);
@@ -2503,7 +2905,6 @@
             ctx.arc(0, -7, 4, 0, Math.PI * 2);
             ctx.fill();
 
-            // Lentes de sol
             ctx.fillStyle = '#0f172a';
             ctx.fillRect(-4.5, -8, 9, 2.5);
           }
@@ -2513,7 +2914,25 @@
           const sparkAngle = frameCount * 0.09;
           ctx.fillRect(Math.cos(sparkAngle) * 11, Math.sin(sparkAngle) * 10, 2.2, 2.2);
           ctx.fillRect(Math.cos(sparkAngle + Math.PI) * 10, Math.sin(sparkAngle + Math.PI) * 9, 1.8, 1.8);
+          ctx.restore();
 
+          // 2. DIBUJAR A ANALÍA EN PRIMER PLANO CON ALTA CLARIDAD, BRILLO Y CONTORNO LUMINOSO
+          ctx.save();
+          if (player.superMode) {
+            ctx.shadowColor = frameCount % 10 < 5 ? '#f472b6' : '#67e8f9';
+            ctx.shadowBlur = IS_MOBILE_RENDER ? 10 : 14;
+            if (!IS_MOBILE_RENDER) ctx.filter = 'brightness(1.18) contrast(1.06)';
+          } else {
+            // Sutil aura clara para que el uniforme oscuro y rostro resalten con máxima nitidez sobre cualquier fondo
+            ctx.shadowColor = 'rgba(255, 255, 255, 0.7)';
+            ctx.shadowBlur = 5;
+            if (!IS_MOBILE_RENDER) ctx.filter = 'brightness(1.14) contrast(1.06)';
+          }
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(activeSprite, -drawW / 2, -drawH / 2, drawW, drawH);
+          if (!IS_MOBILE_RENDER) ctx.filter = 'none';
+          ctx.shadowBlur = 0;
           ctx.restore();
         } else {
           // Renderizado 2D detallado de la Maestra Heladera Malvinas (basado en la foto)
@@ -2754,7 +3173,7 @@
         ctx.save();
         // Resplandor superior
         ctx.fillStyle = 'rgba(15, 23, 42, 0.78)';
-        ctx.fillRect(0, 0, canvas.width, 110);
+        ctx.fillRect(0, 0, GAME_W, 110);
 
         ctx.textAlign = 'center';
         ctx.font = '14px ' + PIXEL_FONT;
@@ -2763,30 +3182,44 @@
         ctx.shadowBlur = 12;
 
         if (currentLevel === 1) {
-          ctx.fillText('🍓 ¡SABOR 1 RECUPERADO: FRUTILLA A LA REINA! 🍓', canvas.width / 2, 45);
+          ctx.fillText('🍓 ¡SABOR 1 RECUPERADO: FRUTILLA A LA REINA! 🍓', GAME_W / 2, 45);
           ctx.font = '8.5px ' + PIXEL_FONT_READABLE;
           ctx.fillStyle = '#67e8f9';
           ctx.shadowBlur = 8;
-          ctx.fillText('¡Analía y Malvi entraron a la sucursal del Dique Los Sauces!', canvas.width / 2, 72);
+          ctx.fillText('¡Analía y Malvi entraron a la sucursal del Dique Los Sauces!', GAME_W / 2, 72);
         } else if (currentLevel === 2) {
-          ctx.fillText('🍮 ¡SABOR 2 RECUPERADO: DULCE DE LECHE! 🍮', canvas.width / 2, 45);
+          ctx.fillText('🍮 ¡SABOR 2 RECUPERADO: DULCE DE LECHE! 🍮', GAME_W / 2, 45);
           ctx.font = '8.5px ' + PIXEL_FONT_READABLE;
           ctx.fillStyle = '#67e8f9';
           ctx.shadowBlur = 8;
-          ctx.fillText('¡Avanzando a la Batalla Final en el Microcentro Riojano!', canvas.width / 2, 72);
+          ctx.fillText('¡Avanzando a la Batalla Final en el Microcentro Riojano!', GAME_W / 2, 72);
         } else {
-          ctx.fillText('🍫 ¡VICTORIA TOTAL: CHOCOLATE MALVINAS SALVADO! 🍫', canvas.width / 2, 45);
+          ctx.fillText('🍫 ¡VICTORIA TOTAL: CHOCOLATE MALVINAS SALVADO! 🍫', GAME_W / 2, 45);
           ctx.font = '8.5px ' + PIXEL_FONT_READABLE;
           ctx.fillStyle = '#4ade80';
           ctx.shadowBlur = 8;
-          ctx.fillText('¡El Maestro Industrial fue vencido y la heladería salvada!', canvas.width / 2, 72);
+          ctx.fillText('¡El Maestro Industrial fue vencido y la heladería salvada!', GAME_W / 2, 72);
         }
         ctx.restore();
       }
     }
 
-    function gameLoop() {
-      updateGame();
+    let lastFrameTime = 0;
+    let frameAccumulator = 0;
+    const FIXED_STEP_MS = 1000 / 60; // Ritmo estable de 60 FPS incluso en pantallas de 120Hz/144Hz
+
+    function gameLoop(timestamp) {
+      const now = timestamp || performance.now();
+      if (!lastFrameTime) lastFrameTime = now;
+      const delta = Math.min(now - lastFrameTime, 100);
+      lastFrameTime = now;
+      frameAccumulator += delta;
+
+      while (frameAccumulator >= FIXED_STEP_MS) {
+        updateGame();
+        frameAccumulator -= FIXED_STEP_MS;
+      }
+
       drawGame();
       requestAnimationFrame(gameLoop);
     }
