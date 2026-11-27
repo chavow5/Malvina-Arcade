@@ -1491,6 +1491,116 @@
       });
     }
 
+    // ============================================================
+    // PWA: REGISTRO DE SERVICE WORKER E INSTALACIÓN COMO APP MÓVIL
+    // ============================================================
+    (function initPwaInstall() {
+      if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js').catch((err) => {
+            console.warn('[PWA] No se pudo registrar Service Worker:', err);
+          });
+        });
+      }
+
+      const quickInstallBtn = document.getElementById('quickInstallBtn');
+      const pwaBanner = document.getElementById('pwaInstallBanner');
+      const btnPwaInstallNow = document.getElementById('btnPwaInstallNow');
+      const btnPwaInstallClose = document.getElementById('btnPwaInstallClose');
+      const iosInstallModal = document.getElementById('iosInstallModal');
+      const btnCloseIosInstall = document.getElementById('btnCloseIosInstall');
+
+      const DISMISS_KEY = 'malvinas_pwa_dismissed_v1';
+      let deferredInstallPrompt = null;
+
+      function isAlreadyInstalled() {
+        return (
+          window.matchMedia('(display-mode: standalone)').matches ||
+          window.matchMedia('(display-mode: fullscreen)').matches ||
+          window.navigator.standalone === true
+        );
+      }
+
+      const ua = navigator.userAgent || '';
+      const isIosDevice = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      const isMobilePwa = isIosDevice || /Android/i.test(ua) || (window.innerWidth <= 1024 && ('ontouchstart' in window || navigator.maxTouchPoints > 0));
+
+      function hideInstallUi() {
+        if (quickInstallBtn) quickInstallBtn.style.display = 'none';
+        if (pwaBanner) pwaBanner.classList.remove('visible');
+      }
+
+      function showInstallUi() {
+        if (isAlreadyInstalled()) {
+          hideInstallUi();
+          return;
+        }
+        if (quickInstallBtn) quickInstallBtn.style.display = 'flex';
+        let dismissed = false;
+        try {
+          dismissed = localStorage.getItem(DISMISS_KEY) === '1';
+        } catch (e) {}
+        if (pwaBanner && isMobilePwa && !dismissed) {
+          setTimeout(() => {
+            if (!isAlreadyInstalled() && arcadeTitleScreen && arcadeTitleScreen.style.display !== 'none') {
+              pwaBanner.classList.add('visible');
+            }
+          }, 1800);
+        }
+      }
+
+      async function triggerInstall() {
+        if (deferredInstallPrompt) {
+          deferredInstallPrompt.prompt();
+          try {
+            const choice = await deferredInstallPrompt.userChoice;
+            if (choice && choice.outcome === 'accepted') {
+              hideInstallUi();
+            }
+          } catch (e) {}
+          deferredInstallPrompt = null;
+          return;
+        }
+        if (isIosDevice && iosInstallModal) {
+          if (pwaBanner) pwaBanner.classList.remove('visible');
+          iosInstallModal.classList.add('active');
+        }
+      }
+
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredInstallPrompt = e;
+        showInstallUi();
+      });
+
+      window.addEventListener('appinstalled', () => {
+        deferredInstallPrompt = null;
+        hideInstallUi();
+        if (typeof showExperienceToast === 'function') {
+          showExperienceToast('✅ ¡Malvinas Arcade se guardó en tu celular!', 4200);
+        }
+      });
+
+      if (quickInstallBtn) quickInstallBtn.addEventListener('click', triggerInstall);
+      if (btnPwaInstallNow) btnPwaInstallNow.addEventListener('click', triggerInstall);
+      if (btnPwaInstallClose) {
+        btnPwaInstallClose.addEventListener('click', () => {
+          if (pwaBanner) pwaBanner.classList.remove('visible');
+          try { localStorage.setItem(DISMISS_KEY, '1'); } catch (e) {}
+        });
+      }
+      if (btnCloseIosInstall) {
+        btnCloseIosInstall.addEventListener('click', () => {
+          if (iosInstallModal) iosInstallModal.classList.remove('active');
+        });
+      }
+
+      // En iPhone/iPad Safari no existe beforeinstallprompt: mostrar botón y aviso directo
+      if (isIosDevice && !isAlreadyInstalled()) {
+        showInstallUi();
+      }
+    })();
+
     // INICIAR EN LA PANTALLA DE INICIO ARCADE PIXEL ART
     checkDeviceOrientation();
     renderRanking();

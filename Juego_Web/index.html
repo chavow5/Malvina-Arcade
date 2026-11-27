@@ -4,10 +4,15 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="theme-color" content="#ff007f" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Malvinas Arcade" />
   <title>MALVINAS ARCADE 🍦 — La Aventura del Sabor (Heladería Las Malvinas)</title>
+  <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" type="image/png" href="logo_heladeria_malvinas.png" />
   <link rel="shortcut icon" type="image/png" href="logo_heladeria_malvinas.png" />
-  <link rel="apple-touch-icon" href="logo_heladeria_malvinas.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png" />
   <!-- FUENTES PIXEL ART ARCADE RETRO (GOOGLE FONTS) -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -61,6 +66,7 @@
     <div id="arcadeTitleScreen" class="arcade-pixel-title-view">
       <!-- BARRA SUPERIOR RÁPIDA -->
       <div class="title-top-bar">
+        <button type="button" class="title-quick-btn" id="quickInstallBtn" style="display:none; border-color:#f472b6; color:#f9a8d4;">📲 Instalar App</button>
         <button type="button" class="title-quick-btn" id="quickRankingBtn">🏆 Salón de la Fama</button>
         <button type="button" class="title-quick-btn" id="quickFsBtn">⛶ Pantalla Completa</button>
         <button type="button" class="title-quick-btn" id="quickSoundBtn">🔊 Sonido: ON</button>
@@ -76,6 +82,17 @@
       <button type="button" class="arcade-img-hitbox" id="btnTitlePlay" aria-label="JUGAR" title="¡Jugar Ahora! (Pulsá ENTER o Clic)"></button>
       <button type="button" class="arcade-img-hitbox" id="btnTitleOptions" aria-label="OPCIONES" title="Opciones, Sonido y Niveles"></button>
       <button type="button" class="arcade-img-hitbox" id="btnTitleExit" aria-label="SALIR / RANKING" title="Salón de la Fama y Récords"></button>
+
+      <!-- BANNER COMPACTO PARA INSTALAR COMO APP EN CELULAR -->
+      <div id="pwaInstallBanner" class="pwa-install-banner" role="dialog" aria-label="Instalar aplicación">
+        <img src="icons/icon-192.png" alt="Las Malvinas" class="pwa-banner-icon" />
+        <div class="pwa-banner-text">
+          <strong>Malvinas Arcade</strong>
+          <span>Guardá el juego como app en tu celular</span>
+        </div>
+        <button type="button" class="btn btn-pink pwa-banner-btn" id="btnPwaInstallNow">📲 Instalar</button>
+        <button type="button" class="pwa-banner-close" id="btnPwaInstallClose" aria-label="Cerrar">✕</button>
+      </div>
     </div>
 
     <!-- PANTALLA DE CARGA RETRO ARCADE (STAGE INTRO CON ANALÍA HACIENDO POSES) -->
@@ -420,6 +437,23 @@
         <a class="btn btn-cyan" id="btnDownloadQrOnly" href="sprites/qr_juego.png" download="qr_las_malvinas_arcade.png" style="text-decoration:none;">📥 Solo QR (.PNG)</a>
         <button type="button" class="btn" id="btnPrintQrFlyer">🖨️ Imprimir</button>
         <button type="button" class="btn btn-pink" id="btnCloseQrModal">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: GUÍA RÁPIDA PARA GUARDAR APP EN IPHONE / IPAD (SAFARI) -->
+  <div class="modal-overlay" id="iosInstallModal">
+    <div class="modal-box" style="max-width:430px; border-color: var(--accent-pink); text-align:center;">
+      <img src="icons/icon-192.png" alt="Las Malvinas" style="width:64px; height:64px; border-radius:16px; margin-bottom:10px; box-shadow:0 4px 16px rgba(236,72,153,0.45);" />
+      <div class="modal-title">📲 Guardar en tu iPhone</div>
+      <div class="modal-sub" style="margin-bottom:12px;">Agregá <strong>Malvinas Arcade</strong> a tu pantalla de inicio para abrirlo como una app:</div>
+      <div class="ios-install-steps">
+        <div class="ios-step"><span>1</span> Tocá el botón <strong>Compartir ⬆️</strong> en la barra de Safari.</div>
+        <div class="ios-step"><span>2</span> Elegí <strong>"Agregar a pantalla de inicio" ➕</strong>.</div>
+        <div class="ios-step"><span>3</span> Tocá <strong>"Agregar"</strong> arriba a la derecha ¡y listo!</div>
+      </div>
+      <div class="modal-actions" style="justify-content:center; margin-top:16px;">
+        <button type="button" class="btn btn-pink" id="btnCloseIosInstall">Entendido</button>
       </div>
     </div>
   </div>
