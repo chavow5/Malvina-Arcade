@@ -183,89 +183,112 @@
     }
 
     /**************************************************************
-     * 2. SISTEMA DE RANKING Y BASE DE DATOS LOCAL (Simulación Firebase)
+     * 2. SISTEMA DE RANKING Y BASE DE DATOS EN VIVO (Firebase Firestore)
      **************************************************************/
-    const STORAGE_KEY = 'malvinas_ranking_v1';
-    const DEFAULT_RANKING = [
-      { name: 'Sofi_LR', contact: '@sofi.larioja', score: 2850, verified: true },
-      { name: 'Mati Centro', contact: '3804-612390', score: 2400, verified: true },
-      { name: 'Facu_Riojano', contact: '@facu.ok.lr', score: 1950, verified: true },
-      { name: 'Agus_Malvinas', contact: '3804-449182', score: 1650, verified: true },
-      { name: 'Nico_Bargas', contact: '@nico.lr99', score: 1200, verified: true }
-    ];
-
     function getRanking() {
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_RANKING));
-          return [...DEFAULT_RANKING];
-        }
-        return JSON.parse(raw);
-      } catch (e) {
-        return [...DEFAULT_RANKING];
+      if (window.MalvinasDB && typeof window.MalvinasDB.getPublicRanking === 'function') {
+        return window.MalvinasDB.getPublicRanking();
       }
+      return [];
     }
 
-    function saveScoreToRanking(name, contact, score) {
-      const list = getRanking();
-      list.push({
-        name: name.trim(),
-        contact: contact.trim(),
-        score: Math.max(0, Math.floor(score)),
-        verified: score <= 15000 // Filtro anti-trampa básico
-      });
-      list.sort((a, b) => b.score - a.score);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(list.slice(0, 50)));
-      renderRanking();
+    function getAdminRanking() {
+      if (window.MalvinasDB && typeof window.MalvinasDB.getAdminRanking === 'function') {
+        return window.MalvinasDB.getAdminRanking();
+      }
+      return [];
+    }
+
+    async function saveScoreToRanking(name, contact, score) {
+      if (!window.MalvinasDB || typeof window.MalvinasDB.submitScore !== 'function') {
+        throw new Error('Conectando con la base de datos. Esperá un segundo e intentá de nuevo.');
+      }
+      return await window.MalvinasDB.submitScore(name, contact, score);
     }
 
     function maskContact(contact) {
-      if (contact.startsWith('@')) return contact;
-      if (contact.length > 4) return contact.slice(0, -4) + '••••';
-      return contact;
+      if (window.MalvinasDB && typeof window.MalvinasDB.maskContactForPublic === 'function') {
+        return window.MalvinasDB.maskContactForPublic(contact);
+      }
+      const clean = String(contact || '').trim();
+      if (!clean) return '••••';
+      if (clean.startsWith('@')) return '@' + clean.slice(1, 3) + '••••';
+      if (clean.length >= 4) return '••••' + clean.slice(-2);
+      return '••••';
     }
 
     function renderRanking() {
+      const db = window.MalvinasDB;
       const list = getRanking();
       const ul = document.getElementById('rankingList');
-      ul.innerHTML = '';
-      list.slice(0, 10).forEach((item, idx) => {
-        const li = document.createElement('li');
-        li.className = `ranking-item ${idx === 0 ? 'top-1' : idx === 1 ? 'top-2' : idx === 2 ? 'top-3' : ''}`;
-        const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`;
-        li.innerHTML = `
-          <div style="display:flex; align-items:center; gap:8px;">
-            <span class="rank-pos">${medal}</span>
-            <div>
-              <span class="rank-name">${escapeHtml(item.name)}</span>
-              <span class="rank-contact">${escapeHtml(maskContact(item.contact))}</span>
-            </div>
-          </div>
-          <span class="rank-score">${item.score} pts</span>
-        `;
-        ul.appendChild(li);
-      });
 
-      // Actualizar tabla Admin
+      if (ul) {
+        ul.innerHTML = '';
+        if (!db || !db.isPublicLoaded()) {
+          ul.innerHTML = '<li class="ranking-empty-state">⏳ Cargando Salón de la Fama en vivo...</li>';
+        } else if (db.getConnectionError() && list.length === 0) {
+          ul.innerHTML = `<li class="ranking-empty-state">⚠️ ${escapeHtml(db.getConnectionError())}</li>`;
+        } else if (list.length === 0) {
+          ul.innerHTML = '<li class="ranking-empty-state">🍦 ¡Todavía no hay puntajes esta semana! Jugá y sé el primero en subir tu récord.</li>';
+        } else {
+          list.slice(0, 10).forEach((item, idx) => {
+            const li = document.createElement('li');
+            li.className = `ranking-item ${idx === 0 ? 'top-1' : idx === 1 ? 'top-2' : idx === 2 ? 'top-3' : ''}`;
+            const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`;
+            li.innerHTML = `
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span class="rank-pos">${medal}</span>
+                <span class="rank-name">${escapeHtml(item.name)}</span>
+              </div>
+              <span class="rank-score">${item.score} pts</span>
+            `;
+            ul.appendChild(li);
+          });
+        }
+      }
+
+      // Actualizar tabla Admin (solo cuando el administrador inició sesión)
       const tbody = document.getElementById('adminTableBody');
       if (tbody) {
         tbody.innerHTML = '';
-        list.forEach((item, idx) => {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td><strong>#${idx + 1}</strong></td>
-            <td>${escapeHtml(item.name)}</td>
-            <td>${escapeHtml(item.contact)}</td>
-            <td><strong style="color:#facc15">${item.score}</strong></td>
-            <td><span class="badge-ok">✔ Verificado</span></td>
-          `;
-          tbody.appendChild(tr);
-        });
-        document.getElementById('adminTotalPlayers').textContent = list.length;
-        document.getElementById('adminTopScore').textContent = list.length ? list[0].score + ' pts' : '0 pts';
+        if (!db || !db.isAdminLoggedIn()) {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#94a3b8; padding:18px;">🔐 Iniciá sesión como administrador para ver los participantes.</td></tr>';
+          const totalEl = document.getElementById('adminTotalPlayers');
+          const topEl = document.getElementById('adminTopScore');
+          if (totalEl) totalEl.textContent = '0';
+          if (topEl) topEl.textContent = '0 pts';
+          return;
+        }
+
+        const adminList = getAdminRanking();
+        if (!db.isAdminLoaded()) {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#94a3b8; padding:18px;">⏳ Cargando participantes...</td></tr>';
+        } else if (adminList.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#94a3b8; padding:18px;">🍦 Aún no hay participantes registrados en este sorteo.</td></tr>';
+        } else {
+          adminList.forEach((item, idx) => {
+            const tr = document.createElement('tr');
+            const statusHtml = item.verified
+              ? '<span class="badge-ok">✔ Verificado</span>'
+              : '<span class="badge-warn">⚠️ Revisar</span>';
+            tr.innerHTML = `
+              <td><strong>#${idx + 1}</strong></td>
+              <td>${escapeHtml(item.name)}</td>
+              <td>${escapeHtml(item.contact)}</td>
+              <td><strong style="color:#facc15">${item.score}</strong></td>
+              <td>${statusHtml}</td>
+              <td><button type="button" class="btn-delete-row" data-entry-id="${escapeHtml(item.id)}" title="Eliminar registro">🗑️</button></td>
+            `;
+            tbody.appendChild(tr);
+          });
+        }
+        const totalEl = document.getElementById('adminTotalPlayers');
+        const topEl = document.getElementById('adminTopScore');
+        if (totalEl) totalEl.textContent = adminList.length;
+        if (topEl) topEl.textContent = adminList.length ? adminList[0].score + ' pts' : '0 pts';
       }
     }
+    window.renderRanking = renderRanking;
 
     function escapeHtml(str) {
       return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));

@@ -1,4 +1,5 @@
 .vscode/
+.firebase/
 *.tmp
 *.log
 .DS_Store

@@ -61,7 +61,6 @@
     <div id="arcadeTitleScreen" class="arcade-pixel-title-view">
       <!-- BARRA SUPERIOR RÁPIDA -->
       <div class="title-top-bar">
-        <button type="button" class="title-quick-btn" id="quickQrBtn" style="border-color:#67e8f9;color:#67e8f9;">📲 Cartel Mesas</button>
         <button type="button" class="title-quick-btn" id="quickRankingBtn">🏆 Salón de la Fama</button>
         <button type="button" class="title-quick-btn" id="quickFsBtn">⛶ Pantalla Completa</button>
         <button type="button" class="title-quick-btn" id="quickSoundBtn">🔊 Sonido: ON</button>
@@ -77,16 +76,6 @@
       <button type="button" class="arcade-img-hitbox" id="btnTitlePlay" aria-label="JUGAR" title="¡Jugar Ahora! (Pulsá ENTER o Clic)"></button>
       <button type="button" class="arcade-img-hitbox" id="btnTitleOptions" aria-label="OPCIONES" title="Opciones, Sonido y Niveles"></button>
       <button type="button" class="arcade-img-hitbox" id="btnTitleExit" aria-label="SALIR / RANKING" title="Salón de la Fama y Récords"></button>
-
-      <!-- BARRA INFORMATIVA INFERIOR ARCADE (FEEDBACK DE FLECHAS Y ENTER) -->
-      <div class="title-bottom-bar" id="titleBottomBar">
-        <div class="title-nav-instructions">
-          <span class="nav-key">▲</span><span class="nav-key">▼</span> o <span class="nav-key">WASD</span> ELEGIR &nbsp;•&nbsp; <span class="nav-key">ENTER</span> VER / ENTRAR &nbsp;•&nbsp; <span class="nav-key">ESC</span> VOLVER
-        </div>
-        <div class="title-nav-ticker" id="titleNavTicker">
-          🍦 ▶ JUGAR — ¡Iniciá la aventura de Analía y Malvi para salvar la heladería!
-        </div>
-      </div>
     </div>
 
     <!-- PANTALLA DE CARGA RETRO ARCADE (STAGE INTRO CON ANALÍA HACIENDO POSES) -->
@@ -269,12 +258,13 @@
       <form id="scoreForm">
         <div class="form-group">
           <label>Tu Nombre o Apodo *</label>
-          <input type="text" id="playerName" required maxlength="24" autocomplete="off" />
+          <input type="text" id="playerName" required minlength="1" maxlength="24" autocomplete="off" />
         </div>
         <div class="form-group">
           <label>Tu WhatsApp o Usuario de Instagram (para avisarte si ganás) *</label>
-          <input type="text" id="playerContact" required maxlength="36" autocomplete="off" />
+          <input type="text" id="playerContact" required minlength="2" maxlength="40" autocomplete="off" />
         </div>
+        <div id="scoreFormError" class="admin-error-msg" style="display:none;"></div>
         <div class="modal-actions modal-end-actions">
           <button type="button" class="btn btn-cyan" id="closeRegisterBtn">🔄 Jugar de Nuevo</button>
           <button type="submit" class="btn btn-pink" id="btnSaveScore">🏆 Cargar Puntos Semanales</button>
@@ -284,11 +274,61 @@
     </div>
   </div>
 
+  <!-- MODAL: LOGIN DE ADMINISTRADOR (CON CONTRASEÑA EN FIREBASE AUTH) -->
+  <div class="modal-overlay" id="adminLoginModal">
+    <div class="modal-box" style="max-width:440px; border-color: var(--accent-cyan);">
+      <div class="modal-title">🔐 Acceso Administrador</div>
+      <div class="modal-sub">Ingresá la contraseña de Heladería Las Malvinas para ver los participantes y gestionar el sorteo semanal.</div>
+      <form id="adminLoginForm">
+        <div class="form-group">
+          <label for="adminPasswordInput">Contraseña de Administrador *</label>
+          <div class="password-field-wrap">
+            <input type="password" id="adminPasswordInput" required autocomplete="current-password" />
+            <button type="button" class="btn-toggle-pwd" id="toggleAdminPwdBtn" aria-label="Mostrar u ocultar contraseña" title="Mostrar / Ocultar">👁️</button>
+          </div>
+        </div>
+        <div id="adminLoginError" class="admin-error-msg" style="display:none;"></div>
+        <div class="modal-actions" style="justify-content:space-between; margin-top:16px;">
+          <button type="button" class="btn" id="closeAdminLoginBtn">Cancelar</button>
+          <button type="submit" class="btn btn-cyan" id="btnAdminLoginSubmit">🔓 Entrar al Panel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: CAMBIAR CONTRASEÑA DE ADMINISTRADOR -->
+  <div class="modal-overlay" id="changePasswordModal">
+    <div class="modal-box" style="max-width:460px; border-color: var(--accent-yellow);">
+      <div class="modal-title">🔑 Cambiar Contraseña</div>
+      <div class="modal-sub">Actualizá la contraseña del panel administrador. El cambio se aplica inmediatamente.</div>
+      <form id="changePasswordForm">
+        <div class="form-group">
+          <label for="currentAdminPwd">Contraseña Actual *</label>
+          <input type="password" id="currentAdminPwd" required autocomplete="current-password" />
+        </div>
+        <div class="form-group">
+          <label for="newAdminPwd">Nueva Contraseña (mín. 6 caracteres) *</label>
+          <input type="password" id="newAdminPwd" required minlength="6" autocomplete="new-password" />
+        </div>
+        <div class="form-group">
+          <label for="confirmAdminPwd">Repetir Nueva Contraseña *</label>
+          <input type="password" id="confirmAdminPwd" required minlength="6" autocomplete="new-password" />
+        </div>
+        <div id="changePwdError" class="admin-error-msg" style="display:none;"></div>
+        <div id="changePwdSuccess" class="admin-success-msg" style="display:none;"></div>
+        <div class="modal-actions" style="justify-content:space-between; margin-top:16px;">
+          <button type="button" class="btn" id="closeChangePwdBtn">Cancelar</button>
+          <button type="submit" class="btn btn-yellow" id="btnChangePwdSubmit">💾 Guardar Contraseña</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- MODAL: PANEL DE DUEÑO / ADMINISTRADOR -->
   <div class="modal-overlay" id="adminModal">
     <div class="modal-box admin-modal">
       <div class="modal-title">🔐 Panel de Control — Heladería Malvinas</div>
-      <div class="modal-sub">Vista privada para el comercio: control de ganadores del sorteo, validación anti-trampa y exportación de base de datos de clientes para WhatsApp Marketing.</div>
+      <div class="modal-sub">Vista privada para el comercio: base de datos en tiempo real de ganadores del sorteo, validación anti-trampa y exportación para WhatsApp Marketing.</div>
 
       <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:10px; margin-bottom:12px;">
         <div style="background:#0f172a; padding:12px; border-radius:10px; border:1px solid #334155;">
@@ -300,8 +340,8 @@
           <strong style="display:block; font-size:1.4rem; color:var(--accent-yellow);" id="adminTopScore">0</strong>
         </div>
         <div style="background:#0f172a; padding:12px; border-radius:10px; border:1px solid #334155;">
-          <span style="font-size:0.75rem; color:var(--text-muted);">Estado del Sorteo</span>
-          <strong style="display:block; font-size:1.1rem; color:#4ade80; margin-top:4px;">🟢 Campaña Activa</strong>
+          <span style="font-size:0.75rem; color:var(--text-muted);">Base de Datos</span>
+          <strong style="display:block; font-size:1.05rem; color:#4ade80; margin-top:4px;">🟢 En Vivo</strong>
         </div>
       </div>
 
@@ -314,19 +354,24 @@
               <th>WhatsApp / Instagram</th>
               <th>Puntaje</th>
               <th>Validación</th>
+              <th>Acción</th>
             </tr>
           </thead>
           <tbody id="adminTableBody"></tbody>
         </table>
       </div>
 
-      <div class="modal-actions" style="justify-content: space-between; flex-wrap: wrap;">
-        <div style="display:flex; gap:8px;">
-          <button type="button" class="btn btn-yellow" id="adminQrBtn">📲 Imprimir Cartel Mesas</button>
-          <button type="button" class="btn btn-cyan" id="exportCsvBtn">📥 Descargar Clientes en Excel (.CSV)</button>
+      <div class="modal-actions" style="justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+        <div style="display:flex; gap:8px; flex-wrap: wrap;">
+          <button type="button" class="btn btn-yellow" id="adminQrBtn">📲 Cartel Mesas / Descargar QR</button>
+          <button type="button" class="btn btn-cyan" id="exportCsvBtn">📥 Excel (.CSV)</button>
+          <button type="button" class="btn" id="openChangePasswordBtn" style="border-color:#facc15; color:#fde047;">🔑 Cambiar Clave</button>
           <button type="button" class="btn" id="resetRankingBtn" style="border-color:#ef4444; color:#fca5a5;">🔄 Reiniciar Sorteo</button>
         </div>
-        <button type="button" class="btn" id="closeAdminBtn">Cerrar Panel</button>
+        <div style="display:flex; gap:8px;">
+          <button type="button" class="btn" id="adminLogoutBtn" style="border-color:#64748b; color:#cbd5e1;">🚪 Salir</button>
+          <button type="button" class="btn" id="closeAdminBtn">Cerrar</button>
+        </div>
       </div>
     </div>
   </div>
@@ -336,7 +381,7 @@
   <!-- ============================================================== -->
   
   <!-- ============================================================== -->
-  <!-- MODAL CARTEL IMPRIMIBLE CON QR PARA MESAS (RECOMENDACIÓN 2)   -->
+  <!-- MODAL CARTEL IMPRIMIBLE Y DESCARGABLE CON QR (SOLO ADMIN)      -->
   <!-- ============================================================== -->
   <div class="modal-overlay" id="qrModal">
     <div class="modal-card print-card" id="qrPrintArea">
@@ -370,8 +415,10 @@
         <span class="qr-free-badge">✨ 100% GRATIS • SIN DESCARGAS</span>
       </div>
 
-      <div class="modal-actions no-print" style="margin-top:20px; display:flex; justify-content:center; gap:12px;">
-        <button type="button" class="btn btn-cyan" id="btnPrintQrFlyer">🖨️ Imprimir Carteles para Mesas</button>
+      <div class="modal-actions no-print" style="margin-top:20px; display:flex; justify-content:center; flex-wrap:wrap; gap:10px;">
+        <button type="button" class="btn btn-yellow" id="btnDownloadQrFlyer">📥 Descargar Cartel (.PNG)</button>
+        <a class="btn btn-cyan" id="btnDownloadQrOnly" href="sprites/qr_juego.png" download="qr_las_malvinas_arcade.png" style="text-decoration:none;">📥 Solo QR (.PNG)</a>
+        <button type="button" class="btn" id="btnPrintQrFlyer">🖨️ Imprimir</button>
         <button type="button" class="btn btn-pink" id="btnCloseQrModal">Cerrar</button>
       </div>
     </div>
@@ -387,5 +434,8 @@
 
   <!-- 3. PARTE DE JUEGO: Bucle principal, pantallas, controles y modales -->
   <script src="juego.js"></script>
+
+  <!-- 4. SERVICIO FIREBASE: Ranking en vivo (Firestore) y Login Admin (Firebase Auth) -->
+  <script type="module" src="firebase-service.js"></script>
 </body>
 </html>

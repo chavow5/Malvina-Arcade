@@ -147,8 +147,13 @@
 
       const nameInput = document.getElementById('playerName');
       const contactInput = document.getElementById('playerContact');
+      const errBox = document.getElementById('scoreFormError');
       if (nameInput) nameInput.value = '';
       if (contactInput) contactInput.value = '';
+      if (errBox) {
+        errBox.style.display = 'none';
+        errBox.textContent = '';
+      }
 
       registerModal.classList.add('active');
 
@@ -180,33 +185,275 @@
       openEndModal(false);
     });
 
-    document.getElementById('scoreForm').addEventListener('submit', (e) => {
+    document.getElementById('scoreForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const name = document.getElementById('playerName').value.trim();
-      const contact = document.getElementById('playerContact').value.trim();
-      if (name && contact) {
-        saveScoreToRanking(name, contact, score);
-        document.getElementById('playerName').value = '';
-        document.getElementById('playerContact').value = '';
+      const nameInput = document.getElementById('playerName');
+      const contactInput = document.getElementById('playerContact');
+      const btnSave = document.getElementById('btnSaveScore');
+      const errBox = document.getElementById('scoreFormError');
+
+      const name = nameInput ? nameInput.value.trim() : '';
+      const contact = contactInput ? contactInput.value.trim() : '';
+      if (errBox) {
+        errBox.style.display = 'none';
+        errBox.textContent = '';
+      }
+
+      if (!name || contact.length < 2) {
+        if (errBox) {
+          errBox.textContent = '⚠️ Completá tu nombre y tu WhatsApp o Instagram (mínimo 2 caracteres).';
+          errBox.style.display = 'block';
+        }
+        return;
+      }
+
+      const originalLabel = btnSave ? btnSave.textContent : '🏆 Cargar Puntos Semanales';
+      if (btnSave) {
+        btnSave.disabled = true;
+        btnSave.textContent = '⏳ Guardando...';
+      }
+
+      try {
+        await saveScoreToRanking(name, contact, score);
+        if (nameInput) nameInput.value = '';
+        if (contactInput) contactInput.value = '';
+        if (typeof showExperienceToast === 'function') {
+          showExperienceToast('🏆 ¡Tus puntos se guardaron en el ranking semanal!', 4000);
+        }
         restartFullGame();
+      } catch (err) {
+        console.error('[Juego] Error al guardar puntaje:', err);
+        if (errBox) {
+          errBox.textContent = '⚠️ ' + (err && err.message ? err.message : 'No se pudo guardar el puntaje. Revisá tu conexión.');
+          errBox.style.display = 'block';
+        }
+      } finally {
+        if (btnSave) {
+          btnSave.disabled = false;
+          btnSave.textContent = originalLabel;
+        }
       }
     });
 
-    // PANEL DE ADMINISTRADOR / DUEÑO
-    document.getElementById('openAdminBtn').addEventListener('click', () => {
-      renderRanking();
-      adminModal.classList.add('active');
-    });
+    // PANEL DE ADMINISTRADOR / DUEÑO (PROTEGIDO CON FIREBASE AUTH)
+    const adminLoginModal = document.getElementById('adminLoginModal');
+    const adminLoginForm = document.getElementById('adminLoginForm');
+    const adminPasswordInput = document.getElementById('adminPasswordInput');
+    const adminLoginError = document.getElementById('adminLoginError');
+    const toggleAdminPwdBtn = document.getElementById('toggleAdminPwdBtn');
+    const closeAdminLoginBtn = document.getElementById('closeAdminLoginBtn');
+    const btnAdminLoginSubmit = document.getElementById('btnAdminLoginSubmit');
+
+    const changePasswordModal = document.getElementById('changePasswordModal');
+    const changePasswordForm = document.getElementById('changePasswordForm');
+    const openChangePasswordBtn = document.getElementById('openChangePasswordBtn');
+    const closeChangePwdBtn = document.getElementById('closeChangePwdBtn');
+    const changePwdError = document.getElementById('changePwdError');
+    const changePwdSuccess = document.getElementById('changePwdSuccess');
+    const btnChangePwdSubmit = document.getElementById('btnChangePwdSubmit');
+    const adminLogoutBtn = document.getElementById('adminLogoutBtn');
+
+    function openAdminAccess() {
+      if (rankingModal) rankingModal.classList.remove('active');
+      if (window.MalvinasDB && window.MalvinasDB.isAdminLoggedIn()) {
+        renderRanking();
+        if (adminModal) adminModal.classList.add('active');
+        return;
+      }
+      if (adminLoginError) {
+        adminLoginError.style.display = 'none';
+        adminLoginError.textContent = '';
+      }
+      if (adminPasswordInput) {
+        adminPasswordInput.value = '';
+        adminPasswordInput.type = 'password';
+      }
+      if (adminLoginModal) {
+        adminLoginModal.classList.add('active');
+        setTimeout(() => {
+          if (adminPasswordInput) adminPasswordInput.focus();
+        }, 60);
+      }
+    }
+
+    const openAdminBtn = document.getElementById('openAdminBtn');
+    if (openAdminBtn) {
+      openAdminBtn.addEventListener('click', openAdminAccess);
+    }
+
+    if (toggleAdminPwdBtn && adminPasswordInput) {
+      toggleAdminPwdBtn.addEventListener('click', () => {
+        const isHidden = adminPasswordInput.type === 'password';
+        adminPasswordInput.type = isHidden ? 'text' : 'password';
+        toggleAdminPwdBtn.textContent = isHidden ? '🙈' : '👁️';
+      });
+    }
+
+    if (closeAdminLoginBtn) {
+      closeAdminLoginBtn.addEventListener('click', () => {
+        if (adminLoginModal) adminLoginModal.classList.remove('active');
+      });
+    }
+
+    if (adminLoginForm) {
+      adminLoginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!window.MalvinasDB) return;
+        const pwd = adminPasswordInput ? adminPasswordInput.value : '';
+        if (adminLoginError) {
+          adminLoginError.style.display = 'none';
+          adminLoginError.textContent = '';
+        }
+        const origText = btnAdminLoginSubmit ? btnAdminLoginSubmit.textContent : '🔓 Entrar al Panel';
+        if (btnAdminLoginSubmit) {
+          btnAdminLoginSubmit.disabled = true;
+          btnAdminLoginSubmit.textContent = '⏳ Verificando...';
+        }
+        try {
+          const res = await window.MalvinasDB.loginAdmin(pwd);
+          if (res.ok) {
+            if (adminPasswordInput) adminPasswordInput.value = '';
+            if (adminLoginModal) adminLoginModal.classList.remove('active');
+            renderRanking();
+            if (adminModal) adminModal.classList.add('active');
+          } else if (adminLoginError) {
+            adminLoginError.textContent = '⚠️ ' + (res.error || 'Contraseña incorrecta.');
+            adminLoginError.style.display = 'block';
+            if (adminPasswordInput) adminPasswordInput.focus();
+          }
+        } finally {
+          if (btnAdminLoginSubmit) {
+            btnAdminLoginSubmit.disabled = false;
+            btnAdminLoginSubmit.textContent = origText;
+          }
+        }
+      });
+    }
+
     document.getElementById('closeAdminBtn').addEventListener('click', () => {
       adminModal.classList.remove('active');
     });
 
-    // Exportar Clientes a Excel (CSV)
+    if (adminLogoutBtn) {
+      adminLogoutBtn.addEventListener('click', async () => {
+        if (window.MalvinasDB) {
+          await window.MalvinasDB.logoutAdmin();
+        }
+        if (adminModal) adminModal.classList.remove('active');
+        if (typeof showExperienceToast === 'function') {
+          showExperienceToast('🔒 Sesión de administrador cerrada.', 3200);
+        }
+      });
+    }
+
+    // Cambiar contraseña desde el panel Admin
+    if (openChangePasswordBtn) {
+      openChangePasswordBtn.addEventListener('click', () => {
+        if (changePwdError) { changePwdError.style.display = 'none'; changePwdError.textContent = ''; }
+        if (changePwdSuccess) { changePwdSuccess.style.display = 'none'; changePwdSuccess.textContent = ''; }
+        if (changePasswordForm) changePasswordForm.reset();
+        if (changePasswordModal) {
+          changePasswordModal.classList.add('active');
+          setTimeout(() => {
+            const cur = document.getElementById('currentAdminPwd');
+            if (cur) cur.focus();
+          }, 60);
+        }
+      });
+    }
+
+    if (closeChangePwdBtn) {
+      closeChangePwdBtn.addEventListener('click', () => {
+        if (changePasswordModal) changePasswordModal.classList.remove('active');
+      });
+    }
+
+    if (changePasswordForm) {
+      changePasswordForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!window.MalvinasDB) return;
+        const currentPwd = document.getElementById('currentAdminPwd').value;
+        const newPwd = document.getElementById('newAdminPwd').value;
+        const confirmPwd = document.getElementById('confirmAdminPwd').value;
+
+        if (changePwdError) { changePwdError.style.display = 'none'; changePwdError.textContent = ''; }
+        if (changePwdSuccess) { changePwdSuccess.style.display = 'none'; changePwdSuccess.textContent = ''; }
+
+        if (newPwd !== confirmPwd) {
+          if (changePwdError) {
+            changePwdError.textContent = '⚠️ Las contraseñas nuevas no coinciden.';
+            changePwdError.style.display = 'block';
+          }
+          return;
+        }
+        if (newPwd.length < 6) {
+          if (changePwdError) {
+            changePwdError.textContent = '⚠️ La nueva contraseña debe tener al menos 6 caracteres.';
+            changePwdError.style.display = 'block';
+          }
+          return;
+        }
+
+        const origText = btnChangePwdSubmit ? btnChangePwdSubmit.textContent : '💾 Guardar Contraseña';
+        if (btnChangePwdSubmit) {
+          btnChangePwdSubmit.disabled = true;
+          btnChangePwdSubmit.textContent = '⏳ Guardando...';
+        }
+        try {
+          const res = await window.MalvinasDB.changeAdminPassword(currentPwd, newPwd);
+          if (res.ok) {
+            changePasswordForm.reset();
+            if (changePwdSuccess) {
+              changePwdSuccess.textContent = '✅ ¡Contraseña actualizada con éxito!';
+              changePwdSuccess.style.display = 'block';
+            }
+            setTimeout(() => {
+              if (changePasswordModal) changePasswordModal.classList.remove('active');
+            }, 1300);
+          } else if (changePwdError) {
+            changePwdError.textContent = '⚠️ ' + (res.error || 'No se pudo cambiar la contraseña.');
+            changePwdError.style.display = 'block';
+          }
+        } finally {
+          if (btnChangePwdSubmit) {
+            btnChangePwdSubmit.disabled = false;
+            btnChangePwdSubmit.textContent = origText;
+          }
+        }
+      });
+    }
+
+    // Eliminar un registro individual desde la tabla Admin
+    const adminTableBodyEl = document.getElementById('adminTableBody');
+    if (adminTableBodyEl) {
+      adminTableBodyEl.addEventListener('click', async (e) => {
+        const delBtn = e.target.closest('.btn-delete-row');
+        if (!delBtn || !window.MalvinasDB || !window.MalvinasDB.isAdminLoggedIn()) return;
+        const entryId = delBtn.getAttribute('data-entry-id');
+        if (!entryId) return;
+        if (!confirm('¿Eliminar este puntaje del ranking semanal?')) return;
+        delBtn.disabled = true;
+        try {
+          await window.MalvinasDB.deleteEntry(entryId);
+          if (typeof showExperienceToast === 'function') {
+            showExperienceToast('🗑️ Registro eliminado del ranking.', 3000);
+          }
+        } catch (err) {
+          console.error('[Admin] Error al eliminar registro:', err);
+          alert('No se pudo eliminar el registro. Revisá tu conexión.');
+          delBtn.disabled = false;
+        }
+      });
+    }
+
+    // Exportar Clientes a Excel (CSV con BOM UTF-8)
     document.getElementById('exportCsvBtn').addEventListener('click', () => {
-      const list = getRanking();
-      let csv = 'Posicion,Nombre,WhatsApp_o_Instagram,Puntaje,Estado\n';
+      if (!window.MalvinasDB || !window.MalvinasDB.isAdminLoggedIn()) return;
+      const list = getAdminRanking();
+      let csv = '\uFEFFPosicion,Nombre,WhatsApp_o_Instagram,Puntaje,Estado\n';
       list.forEach((item, idx) => {
-        csv += `${idx + 1},"${item.name.replace(/"/g, '""')}","${item.contact.replace(/"/g, '""')}",${item.score},Verificado\n`;
+        const status = item.verified ? 'Verificado' : 'Revisar';
+        csv += `${idx + 1},"${String(item.name || '').replace(/"/g, '""')}","${String(item.contact || '').replace(/"/g, '""')}",${item.score},${status}\n`;
       });
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
@@ -217,11 +464,29 @@
       URL.revokeObjectURL(url);
     });
 
-    // Reiniciar Ranking para nuevo sorteo
-    document.getElementById('resetRankingBtn').addEventListener('click', () => {
-      if (confirm('¿Reiniciar la tabla de posiciones para comenzar un nuevo sorteo semanal?')) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_RANKING));
-        renderRanking();
+    // Reiniciar Ranking para nuevo sorteo (borra en Firestore)
+    document.getElementById('resetRankingBtn').addEventListener('click', async () => {
+      if (!window.MalvinasDB || !window.MalvinasDB.isAdminLoggedIn()) return;
+      if (!confirm('¿Reiniciar toda la tabla de posiciones en la base de datos para comenzar un nuevo sorteo semanal? Esta acción no se puede deshacer.')) return;
+      const btn = document.getElementById('resetRankingBtn');
+      const origText = btn ? btn.textContent : '🔄 Reiniciar Sorteo';
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = '⏳ Reiniciando...';
+      }
+      try {
+        await window.MalvinasDB.resetAllRankings();
+        if (typeof showExperienceToast === 'function') {
+          showExperienceToast('🔄 Ranking semanal reiniciado correctamente.', 3800);
+        }
+      } catch (err) {
+        console.error('[Admin] Error al reiniciar ranking:', err);
+        alert('No se pudo reiniciar el sorteo. Revisá tu conexión.');
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = origText;
+        }
       }
     });
 
@@ -607,7 +872,6 @@
       {
         id: 'btnTitleExit',
         name: 'SALÓN DE LA FAMA',
-        ticker: '🏆 ▶ SALÓN DE LA FAMA — Mirá el Top 10 semanal y cargá tus puntos para ganar increíbles premios',
         action: () => {
           if (soundEnabled && typeof SFX !== 'undefined' && SFX.blip) SFX.blip();
           renderRanking();
@@ -615,19 +879,8 @@
         }
       },
       {
-        id: 'quickQrBtn',
-        name: 'CARTEL MESAS',
-        ticker: '📲 ▶ CARTEL MESAS — Mirá e imprimí el código QR del juego para las mesas',
-        action: () => {
-          if (soundEnabled && typeof SFX !== 'undefined' && SFX.blip) SFX.blip();
-          const qModal = document.getElementById('qrModal');
-          if (qModal) qModal.classList.add('active');
-        }
-      },
-      {
         id: 'quickRankingBtn',
         name: 'RÉCORDS TOP 10',
-        ticker: '🏆 ▶ RÉCORDS TOP 10 — Ranking semanal: cargá tus puntos y ganá increíbles premios por jugar',
         action: () => {
           if (soundEnabled && typeof SFX !== 'undefined' && SFX.blip) SFX.blip();
           renderRanking();
@@ -838,8 +1091,9 @@
 
     // Control por Teclado: Flechas, WASD, Enter, Espacio y Escape
     window.addEventListener('keydown', (e) => {
-      // 1. Si hay un modal abierto
-      const activeModal = document.querySelector('.modal-overlay.active');
+      // 1. Si hay uno o más modales abiertos, tomar siempre el superior
+      const activeModals = document.querySelectorAll('.modal-overlay.active');
+      const activeModal = activeModals.length ? activeModals[activeModals.length - 1] : null;
       if (activeModal) {
         if (activeModal.id === 'pauseModal') {
           if (e.key === 'Escape' || e.code === 'Escape' || e.code === 'KeyP' || e.key === 'Enter' || e.code === 'Enter') {
@@ -906,9 +1160,9 @@
         if (e.key === 'ArrowRight' || e.code === 'KeyD') {
           e.preventDefault();
           if (currentTitleMenuIdx < 3) {
-            updateMenuSelection(3, true); // Salta a Cartel Mesas
+            updateMenuSelection(3, true); // Salta a Salón de la Fama
           } else {
-            const nextIdx = currentTitleMenuIdx < 6 ? currentTitleMenuIdx + 1 : 3;
+            const nextIdx = currentTitleMenuIdx < titleMenuItems.length - 1 ? currentTitleMenuIdx + 1 : 3;
             updateMenuSelection(nextIdx, true);
           }
           return;
@@ -965,16 +1219,6 @@
         startOfficialGame(lvl);
       });
     });
-
-    // PANEL ADMIN
-    const openAdminBtn = document.getElementById('openAdminBtn');
-    if (openAdminBtn) {
-      openAdminBtn.addEventListener('click', () => {
-        if (rankingModal) rankingModal.classList.remove('active');
-        renderRanking();
-        if (adminModal) adminModal.classList.add('active');
-      });
-    }
 
     // CERRAR MODALES AL HACER CLIC AFUERA
     document.querySelectorAll('.modal-overlay').forEach(modal => {
@@ -1068,20 +1312,174 @@
 
     
     // ============================================================
-    // RECOMENDACIÓN 2: CONTROLADOR DEL CARTEL QR IMPRIMIBLE
+    // CONTROLADOR DEL CARTEL QR IMPRIMIBLE Y DESCARGABLE (SOLO ADMIN)
     // ============================================================
     const qrModal = document.getElementById('qrModal');
-    const quickQrBtn = document.getElementById('quickQrBtn');
     const adminQrBtn = document.getElementById('adminQrBtn');
     const btnCloseQrModal = document.getElementById('btnCloseQrModal');
     const btnPrintQrFlyer = document.getElementById('btnPrintQrFlyer');
+    const btnDownloadQrFlyer = document.getElementById('btnDownloadQrFlyer');
 
     function openQrModal() {
+      if (!window.MalvinasDB || !window.MalvinasDB.isAdminLoggedIn()) return;
       if (qrModal) qrModal.classList.add('active');
     }
 
-    if (quickQrBtn) quickQrBtn.addEventListener('click', openQrModal);
+    function loadImgForPoster(src) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => resolve(null);
+        img.src = src;
+      });
+    }
+
+    function drawRoundedRect(ctx, x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+    }
+
+    async function downloadQrFlyerPng() {
+      if (!window.MalvinasDB || !window.MalvinasDB.isAdminLoggedIn()) return;
+      const origText = btnDownloadQrFlyer ? btnDownloadQrFlyer.textContent : '📥 Descargar Cartel (.PNG)';
+      if (btnDownloadQrFlyer) {
+        btnDownloadQrFlyer.disabled = true;
+        btnDownloadQrFlyer.textContent = '⏳ Generando...';
+      }
+      try {
+        const [qrImg, analiaImg, malviImg] = await Promise.all([
+          loadImgForPoster('sprites/qr_juego.png'),
+          loadImgForPoster('sprites/analia_victoria.png'),
+          loadImgForPoster('sprites/malvi_dibujo.png')
+        ]);
+
+        const W = 900;
+        const H = 1140;
+        const canvas = document.createElement('canvas');
+        canvas.width = W;
+        canvas.height = H;
+        const ctx = canvas.getContext('2d');
+
+        // Fondo oscuro arcade
+        const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
+        bgGrad.addColorStop(0, '#14092e');
+        bgGrad.addColorStop(1, '#070312');
+        ctx.fillStyle = bgGrad;
+        ctx.fillRect(0, 0, W, H);
+
+        // Marco neón exterior
+        drawRoundedRect(ctx, 28, 28, W - 56, H - 56, 30);
+        ctx.strokeStyle = '#67e8f9';
+        ctx.lineWidth = 6;
+        ctx.stroke();
+
+        // Marca superior
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#f472b6';
+        ctx.font = 'bold 26px "Segoe UI", Arial, sans-serif';
+        ctx.fillText('HELADERÍA LAS MALVINAS', W / 2, 102);
+
+        // Título principal
+        ctx.fillStyle = '#facc15';
+        ctx.font = '900 44px "Segoe UI", Arial, sans-serif';
+        ctx.fillText('¡JUGÁ MIENTRAS', W / 2, 168);
+        ctx.fillText('DISFRUTÁS TU HELADO!', W / 2, 222);
+
+        // Subtítulo
+        ctx.fillStyle = '#e2e8f0';
+        ctx.font = '600 23px "Segoe UI", Arial, sans-serif';
+        ctx.fillText('Escaneá con la cámara de tu celular, jugá y cargá tus puntos semanales:', W / 2, 272);
+
+        // Tarjeta blanca del QR
+        const qrBoxSize = 400;
+        const qrBoxX = (W - qrBoxSize) / 2;
+        const qrBoxY = 308;
+        drawRoundedRect(ctx, qrBoxX, qrBoxY, qrBoxSize, qrBoxSize + 54, 24);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+
+        if (qrImg) {
+          ctx.imageSmoothingEnabled = false;
+          ctx.drawImage(qrImg, qrBoxX + 24, qrBoxY + 22, qrBoxSize - 48, qrBoxSize - 48);
+          ctx.imageSmoothingEnabled = true;
+        }
+
+        ctx.fillStyle = '#0f172a';
+        ctx.font = 'bold 21px "Segoe UI", Arial, sans-serif';
+        ctx.fillText('ESCANEÁ CON LA CÁMARA', W / 2, qrBoxY + qrBoxSize + 30);
+
+        // Personajes a los lados del QR
+        if (analiaImg) {
+          const ah = 270;
+          const aw = ah * (analiaImg.width / analiaImg.height);
+          ctx.drawImage(analiaImg, 54, qrBoxY + 135, aw, ah);
+        }
+        if (malviImg) {
+          const mh = 185;
+          const mw = mh * (malviImg.width / malviImg.height);
+          ctx.drawImage(malviImg, W - mw - 54, qrBoxY + 185, mw, mh);
+        }
+
+        // Pasos / Premios
+        const steps = [
+          { tag: 'PASO 1', text: 'Jugá gratis online desde tu celular', vip: false },
+          { tag: 'PASO 2', text: 'Cargá tus puntos en el ranking semanal', vip: false },
+          { tag: 'PREMIO', text: '¡Ganá increíbles premios solo por jugar!', vip: true }
+        ];
+        let stepY = 796;
+        steps.forEach((s) => {
+          drawRoundedRect(ctx, 84, stepY, W - 168, 62, 14);
+          ctx.fillStyle = s.vip ? 'rgba(236, 72, 153, 0.28)' : 'rgba(255, 255, 255, 0.08)';
+          ctx.fill();
+          ctx.strokeStyle = s.vip ? '#f472b6' : 'rgba(255, 255, 255, 0.2)';
+          ctx.lineWidth = s.vip ? 3 : 1.5;
+          ctx.stroke();
+
+          ctx.textAlign = 'left';
+          ctx.fillStyle = s.vip ? '#facc15' : '#67e8f9';
+          ctx.font = 'bold 22px "Segoe UI", Arial, sans-serif';
+          ctx.fillText(s.tag, 114, stepY + 39);
+
+          ctx.textAlign = 'right';
+          ctx.fillStyle = s.vip ? '#fde047' : '#f8fafc';
+          ctx.font = (s.vip ? 'bold ' : '600 ') + '22px "Segoe UI", Arial, sans-serif';
+          ctx.fillText(s.text, W - 114, stepY + 39);
+
+          stepY += 76;
+        });
+
+        // URL y pie
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#67e8f9';
+        ctx.font = 'bold 24px "Segoe UI", Arial, sans-serif';
+        ctx.fillText('lasmalvinasarcade.web.app', W / 2, 1052);
+
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '600 18px "Segoe UI", Arial, sans-serif';
+        ctx.fillText('Heladería Las Malvinas — La Rioja, Argentina  •  100% GRATIS • SIN DESCARGAS', W / 2, 1088);
+
+        const link = document.createElement('a');
+        link.href = canvas.toDataURL('image/png');
+        link.download = 'cartel_mesas_las_malvinas.png';
+        link.click();
+      } catch (err) {
+        console.error('[QR] Error al generar cartel PNG:', err);
+        alert('No se pudo generar la imagen del cartel. Probá con "Solo QR (.PNG)" o "Imprimir".');
+      } finally {
+        if (btnDownloadQrFlyer) {
+          btnDownloadQrFlyer.disabled = false;
+          btnDownloadQrFlyer.textContent = origText;
+        }
+      }
+    }
+
     if (adminQrBtn) adminQrBtn.addEventListener('click', openQrModal);
+    if (btnDownloadQrFlyer) btnDownloadQrFlyer.addEventListener('click', downloadQrFlyerPng);
     if (btnCloseQrModal) {
       btnCloseQrModal.addEventListener('click', () => {
         if (qrModal) qrModal.classList.remove('active');

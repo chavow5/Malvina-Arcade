@@ -1910,6 +1910,85 @@
     font-weight: bold;
   }
 
+  /* ============================================================== */
+  /* ESTILOS DE BASE DE DATOS EN VIVO Y LOGIN DE ADMINISTRADOR      */
+  /* ============================================================== */
+  .ranking-empty-state {
+    text-align: center;
+    padding: 20px 14px;
+    color: #94a3b8;
+    background: #0f172a;
+    border: 1px dashed #334155;
+    border-radius: 10px;
+    font-size: 0.84rem;
+    line-height: 1.5;
+  }
+  .badge-warn {
+    background: rgba(245, 158, 11, 0.2);
+    color: #fbbf24;
+    padding: 2px 8px;
+    border-radius: 99px;
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+  .password-field-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .password-field-wrap input {
+    flex: 1;
+  }
+  .btn-toggle-pwd {
+    background: #0f172a;
+    border: 1px solid #475569;
+    color: #e2e8f0;
+    border-radius: 8px;
+    padding: 9px 11px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    line-height: 1;
+    transition: 0.15s;
+  }
+  .btn-toggle-pwd:hover {
+    border-color: #38bdf8;
+    background: #1e293b;
+  }
+  .admin-error-msg {
+    background: rgba(239, 68, 68, 0.16);
+    border: 1px solid #ef4444;
+    color: #fca5a5;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 0.8rem;
+    margin: 8px 0 4px 0;
+    line-height: 1.4;
+  }
+  .admin-success-msg {
+    background: rgba(34, 197, 94, 0.16);
+    border: 1px solid #22c55e;
+    color: #86efac;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 0.8rem;
+    margin: 8px 0 4px 0;
+    line-height: 1.4;
+  }
+  .btn-delete-row {
+    background: rgba(239, 68, 68, 0.14);
+    border: 1px solid rgba(239, 68, 68, 0.45);
+    color: #fca5a5;
+    border-radius: 6px;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: 0.15s;
+  }
+  .btn-delete-row:hover {
+    background: rgba(239, 68, 68, 0.32);
+    border-color: #ef4444;
+  }
+
   /* REGLAS DE IMPRESIÓN PARA HOJA A4 / A5 */
   @media print {
     body {
